@@ -196,7 +196,6 @@ export class MatchSim {
     if (this.sides[s].style === "Contra-ataque") gp *= 1.08;
     if (rand() < clamp(gp, 0.05, 0.92)) {
       this.score[s]++;
-      sp.goals += 0;
       this.bump(shooter, 1.1);
       this.bump(assist, 0.6);
       this.bump(gkId, -0.3);
@@ -237,7 +236,6 @@ export class MatchSim {
     if (s.subsUsed >= 5) return false;
     const idx = s.lineup.findIndex((l) => l.pid === outId);
     if (idx < 0 || s.sentOff.has(outId) || !s.bench.includes(inId)) return false;
-    const wasInjured = s.injured.has(outId);
     this.minutesPlayed[outId] = this.minute - (this.enteredAt[outId] ?? 0);
     s.lineup[idx] = { ...s.lineup[idx], pid: inId };
     s.bench = s.bench.filter((b) => b !== inId);
@@ -246,7 +244,6 @@ export class MatchSim {
     this.ratings[inId] = 6.2;
     this.enteredAt[inId] = this.minute;
     this.fatigue[inId] = this.p(inId).fit;
-    if (wasInjured) s.injured.add(-outId - 1); // keep record negative sentinel (ignored)
     this.markDirty();
     this.ev({ min: this.minute, side, type: "sub", pid: inId, text: `Substituição: sai ${this.name(outId)}, entra ${this.name(inId)}.` });
     return true;

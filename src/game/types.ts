@@ -76,7 +76,7 @@ export interface Cup {
   alive: number[]; rounds: Fixture[][]; winner?: number; scorers: Record<number, number>; entrants: number[];
 }
 
-export interface DayPlan { kind: "league" | "cup"; leagueRound?: number; cups?: string[]; label: string }
+export interface DayPlan { kind: "league" | "cup"; leagueRound?: number; cups?: string[]; cupRound?: number; label: string }
 
 export interface SetPieces { captain?: number; pen?: number; fk?: number; corner?: number }
 
@@ -165,4 +165,6 @@ export interface GameState {
   shortlist: number[];
   unemployed?: boolean;
   userMatchDone: boolean;
+  lastStandings: Record<string, number[]>;
+  fired?: boolean;
 }
