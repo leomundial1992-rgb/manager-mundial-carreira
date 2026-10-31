@@ -219,7 +219,7 @@ export function applyTraining(st: GameState) {
   for (const id of club.players) {
     const p = st.players[id];
     if (p.inj > 0) continue;
-    let fitDelta = 6;
+    let fitDelta = 12;
     for (const sess of t.week) {
       if (sess === "Descanso") { fitDelta += 4; continue; }
       fitDelta += it.f;
@@ -230,7 +230,7 @@ export function applyTraining(st: GameState) {
       if (p.pos === "GOL") attrs = [A.REF, A.POS, A.REF];
       const potF = ovr(p) >= p.pot ? 0.12 : 1;
       const g = 0.03 * it.g * ageGrowth(p.age) * potF * (0.8 + club.fac.training * 0.1);
-      for (const a of attrs) p.attr[a] = clamp(p.attr[a] + g * (0.5 + rand()), 1, 99);
+      for (const a of attrs) p.attr[a] = Math.round(clamp(p.attr[a] + g * (0.5 + rand()), 1, 99) * 100) / 100;
       const risk = 0.0012 * it.inj * (p.fit < 60 ? 2 : 1) * (1.1 - club.fac.medical * 0.08);
       if (rand() < risk) {
         p.inj = randInt(1, 3);
@@ -367,7 +367,7 @@ function develop(p: Player, user: boolean) {
   else d = -2 - rand() * 2.5;
   const form = p.ratings.length ? p.ratings.reduce((a, b) => a + b, 0) / p.ratings.length : 6.5;
   d += (form - 6.6) * 0.8;
-  p.attr = p.attr.map((v, i) => (p.pos !== "GOL" && i === A.REF) || (p.pos === "GOL" && ![A.REF, A.POS, A.FOR, A.PAS].includes(i as 11)) ? v : clamp(v + d * (0.6 + rand() * 0.8), 5, 99));
+  p.attr = p.attr.map((v, i) => (p.pos !== "GOL" && i === A.REF) || (p.pos === "GOL" && ![A.REF, A.POS, A.FOR, A.PAS].includes(i as 11)) ? v : Math.round(clamp(v + d * (0.6 + rand() * 0.8), 5, 99) * 10) / 10);
   p.age++;
 }
 
