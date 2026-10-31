@@ -336,6 +336,10 @@ export function finishDay(st: GameState) {
   applyTraining(st);
   aiOffers(st);
   if (st.day % 4 === 3) { monthlyFinances(st); jobOffer(st); }
+  if (st.userClub !== null && (st.day === 20 || st.day === 40)) {
+    const exp = st.clubs[st.userClub].players.map((id) => st.players[id]).filter((p) => p.contract <= 1 && p.loanFrom == null);
+    if (exp.length) msg(st, "Contratos terminando", `Vencem ao fim da temporada: ${exp.map((p) => p.name).join(", ")}. Renove no perfil de cada jogador ou eles sairão de graça.`, "contrato");
+  }
   if (st.userClub !== null && !st.fired && st.day > 12 && st.board.confidence <= 8) fire(st);
   st.day++;
   st.userMatchDone = false;

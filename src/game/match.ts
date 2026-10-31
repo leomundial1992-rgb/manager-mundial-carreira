@@ -327,7 +327,7 @@ export class MatchSim {
     const passes = randInt(4, 7);
     this.stats[s].passes += passes;
     this.stats[s].passOk += Math.round(passes * clamp(0.62 + As.mid / 330, 0.6, 0.93));
-    const chanceP = 0.155 * Math.pow(As.att / Math.max(Do.def, 20), 2.2);
+    const chanceP = 0.14 * Math.pow(As.att / Math.max(Do.def, 20), 2.2);
     if (rand() < chanceP) {
       if (rand() < 0.05) this.stats[s].off++, this.ev({ min: m, side: s, type: "offside", text: `Impedimento marcado contra ${this.state.clubs[this.sides[s].club].short}.` });
       else this.shot(s, { big: rand() < 0.17 });
