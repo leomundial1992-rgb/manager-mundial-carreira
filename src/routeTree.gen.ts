@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ComoJogarRouteImport } from './routes/como-jogar'
+import { Route as JogoRouteImport } from './routes/jogo'
 import { Route as NovoRouteImport } from './routes/novo'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const ComoJogarRoute = ComoJogarRouteImport.update({
   path: '/como-jogar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JogoRoute = JogoRouteImport.update({
+  id: '/jogo',
+  path: '/jogo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NovoRoute = NovoRouteImport.update({
   id: '/novo',
   path: '/novo',
@@ -32,30 +38,34 @@ const NovoRoute = NovoRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/como-jogar': typeof ComoJogarRoute
+  '/jogo': typeof JogoRoute
   '/novo': typeof NovoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/como-jogar': typeof ComoJogarRoute
+  '/jogo': typeof JogoRoute
   '/novo': typeof NovoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/como-jogar': typeof ComoJogarRoute
+  '/jogo': typeof JogoRoute
   '/novo': typeof NovoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/como-jogar' | '/novo'
+  fullPaths: '/' | '/como-jogar' | '/jogo' | '/novo'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/como-jogar' | '/novo'
-  id: '__root__' | '/' | '/como-jogar' | '/novo'
+  to: '/' | '/como-jogar' | '/jogo' | '/novo'
+  id: '__root__' | '/' | '/como-jogar' | '/jogo' | '/novo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ComoJogarRoute: typeof ComoJogarRoute
+  JogoRoute: typeof JogoRoute
   NovoRoute: typeof NovoRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ComoJogarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/jogo': {
+      id: '/jogo'
+      path: '/jogo'
+      fullPath: '/jogo'
+      preLoaderRoute: typeof JogoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/novo': {
       id: '/novo'
       path: '/novo'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ComoJogarRoute: ComoJogarRoute,
+  JogoRoute: JogoRoute,
   NovoRoute: NovoRoute,
 }
 export const routeTree = rootRouteImport
