@@ -76,7 +76,8 @@ export function createWorld(difficulty: Difficulty): GameState {
     for (const n of c.clubs) if (names.length < total && !used.has(n)) { names.push(n); used.add(n); }
     let i = 0;
     while (names.length < total) {
-      const n = c.pattern(c.cities[i % c.cities.length], Math.floor(i / c.cities.length) + i);
+      let n = c.pattern(c.cities[i % c.cities.length], Math.floor(i / c.cities.length) + i);
+      if (i > c.cities.length * 6) n = `${n} ${Math.floor(i / c.cities.length)}`;
       i++;
       if (used.has(n)) continue;
       used.add(n); names.push(n);
