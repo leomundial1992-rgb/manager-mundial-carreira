@@ -101,7 +101,7 @@ export function applyResult(st: GameState, f: Fixture, sim: MatchSim) {
       if (p.club !== side.club) continue;
       const mins = sim.minutesPlayed[pid];
       p.apps++;
-      p.fit = clamp(Math.round(p.fit - (mins / 90) * (24 - p.attr[A.RES] * 0.12)), 20, 100);
+      p.fit = clamp(Math.round(p.fit - (p.pos === "GOL" ? 0.4 : 1) * (mins / 90) * (24 - p.attr[A.RES] * 0.12)), 20, 100);
       p.ratings = [...p.ratings, Math.round((sim.ratings[pid] ?? 6) * 10) / 10].slice(-5);
       p.mor = clamp(p.mor + (won ? 4 : lost ? -4 : 0) + 1, 10, 100);
     }
@@ -343,9 +343,9 @@ export function finishDay(st: GameState) {
   else prepareDay(st);
 }
 
-function fire(st: GameState) {
+function fire(st: GameState, record = true) {
   const c = st.userClub!;
-  closeHistory(st, c, true);
+  if (record) closeHistory(st, c, true);
   msg(st, "Você foi demitido", `A diretoria do ${st.clubs[c].name} perdeu a confiança no seu trabalho. Aguarde propostas de outros clubes.`, "diretoria");
   st.coach.rep = clamp(st.coach.rep - 8, 1, 99);
   st.userClub = null;
@@ -516,7 +516,7 @@ export function endSeason(st: GameState) {
         for (let i = 0; i < 3; i++) jobOffer(st, true);
       }
     } else if (st.board.confidence < 15) {
-      fire(st);
+      fire(st, false);
     }
     for (let i = 0; i < 2; i++) if (rand() < st.coach.rep / 120) jobOffer(st, false);
   }
