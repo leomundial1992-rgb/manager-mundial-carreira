@@ -217,7 +217,7 @@ export function applyTraining(st: GameState) {
   for (const id of club.players) {
     const p = st.players[id];
     if (p.inj > 0) continue;
-    let fitDelta = 12;
+    let fitDelta = 20;
     for (const sess of t.week) {
       if (sess === "Descanso") { fitDelta += 4; continue; }
       fitDelta += it.f;
@@ -331,7 +331,7 @@ export function finishDay(st: GameState) {
   // weekly
   for (const p of Object.values(st.players)) {
     if (p.inj > 0) p.inj--;
-    if (p.club !== st.userClub) p.fit = clamp(p.fit + 14, 20, 100);
+    if (p.club !== st.userClub) p.fit = clamp(p.fit + 18, 20, 100);
   }
   applyTraining(st);
   aiOffers(st);
