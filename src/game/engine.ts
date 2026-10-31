@@ -120,7 +120,7 @@ function userAfterMatch(st: GameState, f: Fixture, sim: MatchSim) {
   if (my > op) st.seasonStats.wins++; else if (my < op) st.seasonStats.losses++; else st.seasonStats.draws++;
   const expected = clamp(0.5 + (me.rep - opp.rep) / 60 + (home ? 0.06 : -0.06), 0.1, 0.9);
   const dm = DIFF_MULT[st.difficulty];
-  st.board.confidence = clamp(Math.round(st.board.confidence + (res - expected) * 9 * dm), 0, 100);
+  st.board.confidence = clamp(Math.round(st.board.confidence + (res - expected) * 5 * dm), 0, 100);
   st.board.fans = clamp(Math.round(st.board.fans + (res - expected) * 10), 0, 100);
   st.coach.rep = clamp(st.coach.rep + (res - expected) * 0.8, 1, 99);
   st.cohesion = clamp(st.cohesion + 0.5, 0, 100);
@@ -150,11 +150,9 @@ export function add(st: GameState, kind: "inc" | "exp", cat: string, v: number) 
   st.clubs[st.userClub].balance += kind === "inc" ? v : -v;
 }
 
-export function quickSim(st: GameState, f: Fixture) {
+export function quickSim(st: GameState, f: Fixture, autoSubs = false) {
   const sim = createMatch(st, f);
-  if (f.h === st.userClub || f.a === st.userClub) {
-    for (const s of sim.sides) if (s.user) s.autoSubs = true;
-  }
+  for (const s of sim.sides) if (s.user) s.autoSubs = autoSubs;
   sim.runToEnd();
   applyResult(st, f, sim);
   return sim;
@@ -338,7 +336,7 @@ export function finishDay(st: GameState) {
   applyTraining(st);
   aiOffers(st);
   if (st.day % 4 === 3) { monthlyFinances(st); jobOffer(st); }
-  if (st.userClub !== null && !st.fired && st.day > 6 && st.board.confidence <= 8) fire(st);
+  if (st.userClub !== null && !st.fired && st.day > 12 && st.board.confidence <= 8) fire(st);
   st.day++;
   st.userMatchDone = false;
   if (st.day >= st.schedule.length) endSeason(st);

@@ -52,15 +52,55 @@ export function autoLineup(state: GameState, clubId: number, formation = "4-3-3"
   return { starters, bench };
 }
 
+export function isAvailable(state: GameState, pid: number, clubId: number) {
+  const p = state.players[pid];
+  return !!p && p.club === clubId && p.inj === 0 && p.sus === 0;
+}
+
+// fill empty/unavailable starter slots with best available players (only when the user asks)
+export function fixLineup(state: GameState) {
+  const clubId = state.userClub!;
+  const t = state.tactic;
+  const slots = FORMATIONS[t.formation];
+  const used = new Set<number>();
+  t.starters = slots.map((_, i) => {
+    const id = t.starters[i];
+    if (id != null && isAvailable(state, id, clubId) && !used.has(id)) { used.add(id); return id; }
+    return null;
+  });
+  const avail = state.clubs[clubId].players.map((id) => state.players[id]).filter((p) => isAvailable(state, p.id, clubId));
+  slots.forEach((s, i) => {
+    if (t.starters[i] != null) return;
+    const best = avail.filter((p) => !used.has(p.id)).sort((a, b) => slotRating(b, s.role) * (0.7 + 0.3 * b.fit / 100) - slotRating(a, s.role) * (0.7 + 0.3 * a.fit / 100))[0];
+    if (best) { used.add(best.id); t.starters[i] = best.id; }
+  });
+  t.bench = [...t.bench.filter((id) => isAvailable(state, id, clubId) && !used.has(id)), ...avail.filter((p) => !used.has(p.id) && !t.bench.includes(p.id)).sort((a, b) => slotRating(b, b.pos) - slotRating(a, a.pos)).map((p) => p.id)].slice(0, 9);
+}
+
+export function lineupIssues(state: GameState): string[] {
+  const clubId = state.userClub!;
+  const t = state.tactic;
+  const out: string[] = [];
+  const slots = FORMATIONS[t.formation];
+  slots.forEach((s, i) => {
+    const id = t.starters[i];
+    if (id == null) out.push(`Posição ${s.label} sem jogador`);
+    else if (!isAvailable(state, id, clubId)) out.push(`${state.players[id]?.name ?? "Jogador"} indisponível (${s.label})`);
+  });
+  const ids = t.starters.filter((x) => x != null);
+  if (new Set(ids).size !== ids.length) out.push("Jogador repetido na escalação");
+  return out;
+}
+
 export function buildSide(state: GameState, clubId: number, user: boolean, tactic?: Tactic): Side {
   const club = state.clubs[clubId];
-  const diffBonus = { facil: 1.06, normal: 1, dificil: 0.97, realista: 0.95 }[state.difficulty];
+  const diffBonus = { facil: 1.06, normal: 1, dificil: 0.97, realista: 0.97 }[state.difficulty];
   if (user && tactic) {
     const slots = FORMATIONS[tactic.formation];
     return {
       club: clubId,
-      lineup: slots.map((s, i) => ({ pid: tactic.starters[i] ?? -1, role: s.role, instr: tactic.instr[i] ?? "Padrão" })).filter((l) => l.pid >= 0),
-      bench: [...tactic.bench], sentOff: new Set(), injured: new Set(), subsUsed: 0,
+      lineup: slots.map((s, i) => ({ pid: tactic.starters[i] ?? -1, role: s.role, instr: tactic.instr[i] ?? "Padrão" })).filter((l) => l.pid >= 0 && isAvailable(state, l.pid, clubId)),
+      bench: tactic.bench.filter((id) => isAvailable(state, id, clubId)), sentOff: new Set(), injured: new Set(), subsUsed: 0,
       formation: tactic.formation, style: tactic.style, pressing: tactic.pressing, sp: { ...tactic.sp },
       bonus: diffBonus, cohesion: state.cohesion, user: true, autoSubs: false,
     };
@@ -287,7 +327,7 @@ export class MatchSim {
     const passes = randInt(4, 7);
     this.stats[s].passes += passes;
     this.stats[s].passOk += Math.round(passes * clamp(0.62 + As.mid / 330, 0.6, 0.93));
-    const chanceP = 0.21 * Math.pow(As.att / Math.max(Do.def, 20), 2.2);
+    const chanceP = 0.155 * Math.pow(As.att / Math.max(Do.def, 20), 2.2);
     if (rand() < chanceP) {
       if (rand() < 0.05) this.stats[s].off++, this.ev({ min: m, side: s, type: "offside", text: `Impedimento marcado contra ${this.state.clubs[this.sides[s].club].short}.` });
       else this.shot(s, { big: rand() < 0.17 });
