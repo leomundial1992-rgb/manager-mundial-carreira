@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { COUNTRIES } from "@/game/data";
 import { createWorld, startCareer } from "@/game/world";
 import { setGame } from "@/game/store";
-import type { Difficulty } from "@/game/types";
+import type { Difficulty, GameState } from "@/game/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/novo")({
@@ -34,10 +34,10 @@ function NewCareer() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   // preview world only for club names / rep ordering (deterministic list order)
-  const preview = useMemo(() => createWorld("normal"), []);
+  const [preview, setPreview] = useState<GameState | null>(null);
+  useEffect(() => setPreview(createWorld("normal")), []);
   const c = COUNTRIES.find((x) => x.id === country)!;
-  const league = preview.leagues[c.leagues[tier].id];
-  const clubs = league.clubs.map((id) => preview.clubs[id]).sort((a, b) => b.rep - a.rep);
+  const clubs = preview ? preview.leagues[c.leagues[tier].id].clubs.map((id) => preview.clubs[id]).sort((a, b) => b.rep - a.rep) : [];
 
   const start = () => {
     if (!club) return;
