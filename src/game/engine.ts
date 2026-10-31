@@ -101,7 +101,7 @@ export function applyResult(st: GameState, f: Fixture, sim: MatchSim) {
       if (p.club !== side.club) continue;
       const mins = sim.minutesPlayed[pid];
       p.apps++;
-      p.fit = clamp(Math.round(p.fit - (mins / 90) * (24 - p.attr[A.RES] * 0.12)), 20, 100);
+      p.fit = clamp(Math.round(p.fit - (p.pos === "GOL" ? 0.4 : 1) * (mins / 90) * (24 - p.attr[A.RES] * 0.12)), 20, 100);
       p.ratings = [...p.ratings, Math.round((sim.ratings[pid] ?? 6) * 10) / 10].slice(-5);
       p.mor = clamp(p.mor + (won ? 4 : lost ? -4 : 0) + 1, 10, 100);
     }
@@ -120,7 +120,7 @@ function userAfterMatch(st: GameState, f: Fixture, sim: MatchSim) {
   if (my > op) st.seasonStats.wins++; else if (my < op) st.seasonStats.losses++; else st.seasonStats.draws++;
   const expected = clamp(0.5 + (me.rep - opp.rep) / 60 + (home ? 0.06 : -0.06), 0.1, 0.9);
   const dm = DIFF_MULT[st.difficulty];
-  st.board.confidence = clamp(Math.round(st.board.confidence + (res - expected) * 9 * dm), 0, 100);
+  st.board.confidence = clamp(Math.round(st.board.confidence + (res - expected) * 5 * dm), 0, 100);
   st.board.fans = clamp(Math.round(st.board.fans + (res - expected) * 10), 0, 100);
   st.coach.rep = clamp(st.coach.rep + (res - expected) * 0.8, 1, 99);
   st.cohesion = clamp(st.cohesion + 0.5, 0, 100);
@@ -150,11 +150,9 @@ export function add(st: GameState, kind: "inc" | "exp", cat: string, v: number) 
   st.clubs[st.userClub].balance += kind === "inc" ? v : -v;
 }
 
-export function quickSim(st: GameState, f: Fixture) {
+export function quickSim(st: GameState, f: Fixture, autoSubs = false) {
   const sim = createMatch(st, f);
-  if (f.h === st.userClub || f.a === st.userClub) {
-    for (const s of sim.sides) if (s.user) s.autoSubs = true;
-  }
+  for (const s of sim.sides) if (s.user) s.autoSubs = autoSubs;
   sim.runToEnd();
   applyResult(st, f, sim);
   return sim;
@@ -219,7 +217,7 @@ export function applyTraining(st: GameState) {
   for (const id of club.players) {
     const p = st.players[id];
     if (p.inj > 0) continue;
-    let fitDelta = 6;
+    let fitDelta = 20;
     for (const sess of t.week) {
       if (sess === "Descanso") { fitDelta += 4; continue; }
       fitDelta += it.f;
@@ -230,7 +228,7 @@ export function applyTraining(st: GameState) {
       if (p.pos === "GOL") attrs = [A.REF, A.POS, A.REF];
       const potF = ovr(p) >= p.pot ? 0.12 : 1;
       const g = 0.03 * it.g * ageGrowth(p.age) * potF * (0.8 + club.fac.training * 0.1);
-      for (const a of attrs) p.attr[a] = clamp(p.attr[a] + g * (0.5 + rand()), 1, 99);
+      for (const a of attrs) p.attr[a] = Math.round(clamp(p.attr[a] + g * (0.5 + rand()), 1, 99) * 100) / 100;
       const risk = 0.0012 * it.inj * (p.fit < 60 ? 2 : 1) * (1.1 - club.fac.medical * 0.08);
       if (rand() < risk) {
         p.inj = randInt(1, 3);
@@ -333,21 +331,25 @@ export function finishDay(st: GameState) {
   // weekly
   for (const p of Object.values(st.players)) {
     if (p.inj > 0) p.inj--;
-    if (p.club !== st.userClub) p.fit = clamp(p.fit + 14, 20, 100);
+    if (p.club !== st.userClub) p.fit = clamp(p.fit + 18, 20, 100);
   }
   applyTraining(st);
   aiOffers(st);
   if (st.day % 4 === 3) { monthlyFinances(st); jobOffer(st); }
-  if (st.userClub !== null && !st.fired && st.day > 6 && st.board.confidence <= 8) fire(st);
+  if (st.userClub !== null && (st.day === 20 || st.day === 40)) {
+    const exp = st.clubs[st.userClub].players.map((id) => st.players[id]).filter((p) => p.contract <= 1 && p.loanFrom == null);
+    if (exp.length) msg(st, "Contratos terminando", `Vencem ao fim da temporada: ${exp.map((p) => p.name).join(", ")}. Renove no perfil de cada jogador ou eles sairão de graça.`, "contrato");
+  }
+  if (st.userClub !== null && !st.fired && st.day > 12 && st.board.confidence <= 8) fire(st);
   st.day++;
   st.userMatchDone = false;
   if (st.day >= st.schedule.length) endSeason(st);
   else prepareDay(st);
 }
 
-function fire(st: GameState) {
+function fire(st: GameState, record = true) {
   const c = st.userClub!;
-  closeHistory(st, c, true);
+  if (record) closeHistory(st, c, true);
   msg(st, "Você foi demitido", `A diretoria do ${st.clubs[c].name} perdeu a confiança no seu trabalho. Aguarde propostas de outros clubes.`, "diretoria");
   st.coach.rep = clamp(st.coach.rep - 8, 1, 99);
   st.userClub = null;
@@ -367,7 +369,7 @@ function develop(p: Player, user: boolean) {
   else d = -2 - rand() * 2.5;
   const form = p.ratings.length ? p.ratings.reduce((a, b) => a + b, 0) / p.ratings.length : 6.5;
   d += (form - 6.6) * 0.8;
-  p.attr = p.attr.map((v, i) => (p.pos !== "GOL" && i === A.REF) || (p.pos === "GOL" && ![A.REF, A.POS, A.FOR, A.PAS].includes(i as 11)) ? v : clamp(v + d * (0.6 + rand() * 0.8), 5, 99));
+  p.attr = p.attr.map((v, i) => (p.pos !== "GOL" && i === A.REF) || (p.pos === "GOL" && ![A.REF, A.POS, A.FOR, A.PAS].includes(i as 11)) ? v : Math.round(clamp(v + d * (0.6 + rand() * 0.8), 5, 99) * 10) / 10);
   p.age++;
 }
 
@@ -518,7 +520,7 @@ export function endSeason(st: GameState) {
         for (let i = 0; i < 3; i++) jobOffer(st, true);
       }
     } else if (st.board.confidence < 15) {
-      fire(st);
+      fire(st, false);
     }
     for (let i = 0; i < 2; i++) if (rand() < st.coach.rep / 120) jobOffer(st, false);
   }
