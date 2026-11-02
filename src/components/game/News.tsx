@@ -3,7 +3,7 @@ import type { GameState, Message } from "@/game/types";
 import { mutate } from "@/game/store";
 import { acceptJob } from "@/game/engine";
 import { sellTo } from "@/game/market";
-import { goTab, notify } from "@/routes/jogo";
+import { goTab, notify } from "@/game/events";
 import { money } from "@/game/util";
 import { Section } from "./ui";
 
