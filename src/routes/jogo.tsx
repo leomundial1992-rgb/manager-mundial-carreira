@@ -26,14 +26,8 @@ export const Route = createFileRoute("/jogo")({
   component: Game,
 });
 
-export type TabId = "home" | "squad" | "comps" | "market" | "more" | "news";
+type TabId = "home" | "squad" | "comps" | "market" | "more" | "news";
 
-export function notify(text: string) {
-  window.dispatchEvent(new CustomEvent("mm-toast", { detail: text }));
-}
-export function goTab(tab: string, sub?: string) {
-  window.dispatchEvent(new CustomEvent("mm-tab", { detail: { tab, sub } }));
-}
 
 function Game() {
   const st = useGame();

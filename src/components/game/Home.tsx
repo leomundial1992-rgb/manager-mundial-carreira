@@ -4,7 +4,7 @@ import { mutate } from "@/game/store";
 import { compName, finishDay, nextUserFixtures, userFixture } from "@/game/engine";
 import { sortedTable } from "@/game/world";
 import { Bar, Crest, Section, Stat } from "./ui";
-import { goTab, notify } from "@/routes/jogo";
+import { goTab, notify } from "@/game/events";
 import { money } from "@/game/util";
 import { userWages } from "@/game/engine";
 
