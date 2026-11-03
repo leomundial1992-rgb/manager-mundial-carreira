@@ -122,36 +122,34 @@
   }
 }
 
-@layer components {
-  .mm-card {
-    @apply rounded-xl border bg-card p-3;
-  }
-  .mm-btn {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 font-semibold transition active:scale-[0.97] disabled:opacity-40;
-  }
-  .mm-btn-primary {
-    @apply mm-btn text-primary-foreground;
-    background-image: var(--gradient-primary);
-    box-shadow: var(--shadow-glow);
-  }
-  .mm-btn-ghost {
-    @apply mm-btn border bg-secondary text-secondary-foreground;
-  }
-  .mm-btn-danger {
-    @apply mm-btn bg-destructive text-destructive-foreground;
-  }
-  .mm-input {
-    @apply min-h-11 w-full rounded-lg border px-3 text-base;
-  }
-  .mm-chip {
-    @apply rounded-full border px-3 py-1.5 text-sm font-medium;
-  }
-  .mm-hero {
-    background-image: var(--gradient-hero);
-  }
-  .mm-pitch {
-    background:
-      repeating-linear-gradient(0deg, transparent 0 40px, oklch(1 0 0 / 4%) 40px 80px),
-      var(--color-pitch);
-  }
+@utility mm-card {
+  @apply rounded-xl border bg-card p-3;
+}
+@utility mm-btn {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 font-semibold transition active:scale-[0.97] disabled:opacity-40;
+}
+@utility mm-btn-primary {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 font-semibold text-primary-foreground transition active:scale-[0.97] disabled:opacity-40;
+  background-image: var(--gradient-primary);
+  box-shadow: var(--shadow-glow);
+}
+@utility mm-btn-ghost {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border bg-secondary px-4 font-semibold text-secondary-foreground transition active:scale-[0.97] disabled:opacity-40;
+}
+@utility mm-btn-danger {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-destructive px-4 font-semibold text-destructive-foreground transition active:scale-[0.97] disabled:opacity-40;
+}
+@utility mm-input {
+  @apply min-h-11 w-full rounded-lg border px-3 text-base;
+}
+@utility mm-chip {
+  @apply rounded-full border px-3 py-1.5 text-sm font-medium;
+}
+@utility mm-hero {
+  background-image: var(--gradient-hero);
+}
+@utility mm-pitch {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 40px, oklch(1 0 0 / 4%) 40px 80px),
+    var(--color-pitch);
 }

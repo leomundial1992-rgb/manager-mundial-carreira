@@ -296,7 +296,7 @@ export function startCareer(st: GameState, clubId: number, coachName: string, sp
   st.ledger = [{ season: st.season, month: 0, inc: {}, exp: {} }];
   const pushMsg = (title: string, body: string, kind: GameState["messages"][number]["kind"], action?: GameState["messages"][number]["action"]) =>
     st.messages.unshift({ id: st.nextMsgId++, season: st.season, day: 0, title, body, kind, action });
-  pushMsg(`Bem-vindo ao ${club.name}!`, `A diretoria apresenta ${st.coach.name} como novo treinador. Objetivo da temporada: ${st.board.objective.text}. Orçamento de transferências: R$ ${(club.transferBudget / 1e6).toFixed(1)} mi.`, "diretoria");
+  pushMsg(`Bem-vindo ao ${club.name}!`, `A diretoria apresenta ${st.coach.name} como novo treinador. Objetivo da temporada: ${st.board.objective.text}. Orçamento de transferências: R$ ${(club.transferBudget / 1e6).toFixed(1).replace(".", ",")} mi.`, "diretoria");
   pushMsg("Patrocinadores interessados", "Empresas enviaram propostas de patrocínio. Confira na área de Patrocínios.", "patrocinio");
   const garro = Object.values(st.players).find((p) => p.name === "Rodrigo Garro");
   if (garro && garro.club !== clubId) {

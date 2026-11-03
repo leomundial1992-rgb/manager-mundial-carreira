@@ -40,7 +40,7 @@ function importance(st: GameState, p: Player) {
   return sorted.findIndex((x) => x.id === p.id) + 1;
 }
 
-export interface ClubReply { ok: boolean; counter?: number; text: string }
+export interface ClubReply { ok: boolean; counter?: number; counterOption?: number; text: string }
 
 export function askingPrice(st: GameState, p: Player) {
   const imp = importance(st, p);
@@ -55,18 +55,18 @@ export function clubResponse(st: GameState, p: Player, kind: "compra" | "emprest
   if (club.players.length <= 17) return { ok: false, text: `${club.name} não pode liberar mais jogadores agora (elenco curto).` };
   const ask = askingPrice(st, p);
   if (kind === "compra") {
-    if (fee >= ask) return { ok: true, text: `${club.name} aceitou a proposta de R$ ${(fee / 1e6).toFixed(2)} mi.` };
-    if (fee >= ask * 0.72) return { ok: false, counter: ask, text: `${club.name} fez uma contraproposta: R$ ${(ask / 1e6).toFixed(2)} mi.` };
+    if (fee >= ask) return { ok: true, text: `${club.name} aceitou a proposta de R$ ${(fee / 1e6).toFixed(2).replace(".", ",")} mi.` };
+    if (fee >= ask * 0.72) return { ok: false, counter: ask, text: `${club.name} fez uma contraproposta: R$ ${(ask / 1e6).toFixed(2).replace(".", ",")} mi.` };
     return { ok: false, text: `${club.name} recusou. Valor muito abaixo do esperado.` };
   }
   // loan
   const imp = importance(st, p);
   const minFee = Math.round(playerValue(p) * (p.listed ? 0.1 : imp <= 3 ? 0.35 : 0.15) * K[st.difficulty] / 10000) * 10000;
-  const minOpt = Math.round(playerValue(p) * 1.05 * K[st.difficulty] / 10000) * 10000;
+  const minOpt = Math.round(playerValue(p) * (p.listed ? 0.95 : 1.05) * K[st.difficulty] / 10000) * 10000;
   if (wagePct < 60) return { ok: false, text: `${club.name} exige que você pague pelo menos 60% do salário.` };
-  if (option !== undefined && option > 0 && option < minOpt) return { ok: false, counter: minFee, text: `${club.name} quer opção de compra de no mínimo R$ ${(minOpt / 1e6).toFixed(1)} mi.` };
+  if (option !== undefined && option > 0 && option < minOpt) return { ok: false, counterOption: minOpt, text: `${club.name} quer opção de compra de no mínimo R$ ${(minOpt / 1e6).toFixed(1).replace(".", ",")} mi.` };
   if (fee >= minFee) return { ok: true, text: `${club.name} aceita o empréstimo por uma temporada.` };
-  return { ok: false, counter: minFee, text: `${club.name} pede taxa de empréstimo de R$ ${(minFee / 1e6).toFixed(2)} mi.` };
+  return { ok: false, counter: minFee, text: `${club.name} pede taxa de empréstimo de R$ ${(minFee / 1e6).toFixed(2).replace(".", ",")} mi.` };
 }
 
 export interface ContractOffer { wage: number; years: number; luvas: number; goalBonus: number }
@@ -95,8 +95,8 @@ export function finishSigning(st: GameState, o: ContractOffer): { ok: boolean; t
   const me = st.clubs[st.userClub];
   const wageCost = pend.kind === "emprestimo" ? Math.round(o.wage * (pend.wagePct ?? 100) / 100) : o.wage;
   const cost = pend.fee + o.luvas;
-  if (cost > me.transferBudget) return { ok: false, text: `Orçamento de transferências insuficiente (disponível R$ ${(me.transferBudget / 1e6).toFixed(2)} mi).` };
-  if (userWages(st) + wageCost > me.wageBudget) return { ok: false, text: `A folha salarial passaria do limite de R$ ${(me.wageBudget / 1e6).toFixed(1)} mi/mês.` };
+  if (cost > me.transferBudget) return { ok: false, text: `Orçamento de transferências insuficiente (disponível R$ ${(me.transferBudget / 1e6).toFixed(2).replace(".", ",")} mi).` };
+  if (userWages(st) + wageCost > me.wageBudget) return { ok: false, text: `A folha salarial passaria do limite de R$ ${(me.wageBudget / 1e6).toFixed(1).replace(".", ",")} mi/mês.` };
   const from = p.club;
   if (from !== null) {
     st.clubs[from].players = st.clubs[from].players.filter((x) => x !== p.id);
@@ -117,7 +117,7 @@ export function finishSigning(st: GameState, o: ContractOffer): { ok: boolean; t
   if (!st.tactic.bench.includes(p.id) && st.tactic.bench.length < 9) st.tactic.bench.push(p.id);
   st.board.fans = clamp(st.board.fans + Math.max(0, (ovr(p) - me.rep) / 3 + 1), 0, 100);
   st.cohesion = clamp(st.cohesion - 1.5, 0, 100);
-  msg(st, `Contratado: ${p.name}`, `${p.name} ${pend.kind === "emprestimo" ? "chega por empréstimo" : "assina contrato"}${from !== null ? ` vindo do ${st.clubs[from].name}` : ""}. Custo: R$ ${(cost / 1e6).toFixed(2)} mi. Salário R$ ${(o.wage / 1e3).toFixed(0)} mil/mês.`, "noticia");
+  msg(st, `Contratado: ${p.name}`, `${p.name} ${pend.kind === "emprestimo" ? "chega por empréstimo" : "assina contrato"}${from !== null ? ` vindo do ${st.clubs[from].name}` : ""}. Custo: R$ ${(cost / 1e6).toFixed(2).replace(".", ",")} mi. Salário R$ ${(o.wage / 1e3).toFixed(0)} mil/mês.`, "noticia");
   st.pending = null;
   return { ok: true, text: "Contratação concluída!" };
 }
@@ -130,7 +130,7 @@ export function exerciseOption(st: GameState, pid: number): { ok: boolean; text:
   me.transferBudget -= p.loanOption;
   st.clubs[p.loanFrom].balance += p.loanOption;
   add(st, "exp", "Contratações", p.loanOption);
-  msg(st, `Opção exercida: ${p.name}`, `${p.name} foi comprado em definitivo por R$ ${(p.loanOption / 1e6).toFixed(1)} mi.`, "noticia");
+  msg(st, `Opção exercida: ${p.name}`, `${p.name} foi comprado em definitivo por R$ ${(p.loanOption / 1e6).toFixed(1).replace(".", ",")} mi.`, "noticia");
   p.loanFrom = null; p.loanOption = undefined; p.loanWagePct = undefined; p.contract = 3;
   return { ok: true, text: "Compra definitiva realizada." };
 }
@@ -155,7 +155,7 @@ export function sellTo(st: GameState, pid: number, clubId: number, fee: number, 
   p.club = clubId; p.listed = false;
   const star = ovr(p) >= me.rep;
   if (!loan) st.board.fans = clamp(st.board.fans - (star ? 6 : 1), 0, 100);
-  msg(st, loan ? `${p.name} emprestado` : `Vendido: ${p.name}`, `${p.name} ${loan ? "foi emprestado" : "foi vendido"} ao ${buyer.name} por R$ ${(fee / 1e6).toFixed(2)} mi.${!loan && star ? " A torcida não gostou da saída." : ""}`, "noticia");
+  msg(st, loan ? `${p.name} emprestado` : `Vendido: ${p.name}`, `${p.name} ${loan ? "foi emprestado" : "foi vendido"} ao ${buyer.name} por R$ ${(fee / 1e6).toFixed(2).replace(".", ",")} mi.${!loan && star ? " A torcida não gostou da saída." : ""}`, "noticia");
 }
 
 export function loanTargets(st: GameState, pid: number) {
@@ -186,5 +186,5 @@ export function release(st: GameState, pid: number) {
   add(st, "exp", "Rescisões", cost);
   p.club = null; p.contract = 0;
   st.freeAgents.push(pid);
-  msg(st, `Rescisão: ${p.name}`, `Contrato rescindido. Multa paga: R$ ${(cost / 1e6).toFixed(2)} mi.`, "contrato");
+  msg(st, `Rescisão: ${p.name}`, `Contrato rescindido. Multa paga: R$ ${(cost / 1e6).toFixed(2).replace(".", ",")} mi.`, "contrato");
 }
