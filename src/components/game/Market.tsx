@@ -99,6 +99,7 @@ function Negotiation({ st, pid, onClose }: { st: GameState; pid: number; onClose
             const r = clubResponse(st, p, kind, fee, kind === "emprestimo" ? opt : undefined, wagePct);
             setReply(r.text);
             if (r.counter) setFee(r.counter);
+            if (r.counterOption) setOpt(r.counterOption);
             if (r.ok) { mutate((s) => { s.pending = { playerId: pid, kind, fee, optionPrice: kind === "emprestimo" ? opt : undefined, wagePct, clubAgreed: true }; }); setStage("contrato"); setReply(""); }
           }}>Enviar proposta ao clube</button>
         </>

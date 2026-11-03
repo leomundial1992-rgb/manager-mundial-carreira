@@ -40,7 +40,7 @@ function importance(st: GameState, p: Player) {
   return sorted.findIndex((x) => x.id === p.id) + 1;
 }
 
-export interface ClubReply { ok: boolean; counter?: number; text: string }
+export interface ClubReply { ok: boolean; counter?: number; counterOption?: number; text: string }
 
 export function askingPrice(st: GameState, p: Player) {
   const imp = importance(st, p);
@@ -62,9 +62,9 @@ export function clubResponse(st: GameState, p: Player, kind: "compra" | "emprest
   // loan
   const imp = importance(st, p);
   const minFee = Math.round(playerValue(p) * (p.listed ? 0.1 : imp <= 3 ? 0.35 : 0.15) * K[st.difficulty] / 10000) * 10000;
-  const minOpt = Math.round(playerValue(p) * 1.05 * K[st.difficulty] / 10000) * 10000;
+  const minOpt = Math.round(playerValue(p) * (p.listed ? 0.95 : 1.05) * K[st.difficulty] / 10000) * 10000;
   if (wagePct < 60) return { ok: false, text: `${club.name} exige que você pague pelo menos 60% do salário.` };
-  if (option !== undefined && option > 0 && option < minOpt) return { ok: false, counter: minFee, text: `${club.name} quer opção de compra de no mínimo R$ ${(minOpt / 1e6).toFixed(1)} mi.` };
+  if (option !== undefined && option > 0 && option < minOpt) return { ok: false, counterOption: minOpt, text: `${club.name} quer opção de compra de no mínimo R$ ${(minOpt / 1e6).toFixed(1)} mi.` };
   if (fee >= minFee) return { ok: true, text: `${club.name} aceita o empréstimo por uma temporada.` };
   return { ok: false, counter: minFee, text: `${club.name} pede taxa de empréstimo de R$ ${(minFee / 1e6).toFixed(2)} mi.` };
 }
