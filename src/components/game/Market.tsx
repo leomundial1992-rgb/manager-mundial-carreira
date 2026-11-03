@@ -116,6 +116,7 @@ function Negotiation({ st, pid, onClose }: { st: GameState; pid: number; onClose
             if (r.ok) {
               if (free) mutate((s) => { s.pending = { playerId: pid, kind: "livre", fee: 0, clubAgreed: true }; });
               setStage("confirmar");
+              setReply("");
             }
           }}>Oferecer contrato</button>
         </>
