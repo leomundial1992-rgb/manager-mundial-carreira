@@ -288,7 +288,7 @@ function aiOffers(st: GameState) {
   const b = choice(bidders);
   const loan = rand() < 0.12 && p.age < 23;
   const fee = loan ? Math.round(val * 0.1 / 10000) * 10000 : Math.round(val * (p.listed ? 0.85 : 0.8) * (0.9 + rand() * 0.45) / 10000) * 10000;
-  msg(st, `Proposta por ${p.name}`, `${b.name} oferece ${loan ? "empréstimo de uma temporada por" : ""} R$ ${(fee / 1e6).toFixed(2)} mi por ${p.name} (valor de mercado R$ ${(val / 1e6).toFixed(1)} mi).`, "proposta", { type: "offerForPlayer", playerId: p.id, fromClub: b.id, fee, loan });
+  msg(st, `Proposta por ${p.name}`, `${b.name} oferece ${loan ? "empréstimo de uma temporada por" : ""} R$ ${(fee / 1e6).toFixed(2).replace(".", ",")} mi por ${p.name} (valor de mercado R$ ${(val / 1e6).toFixed(1).replace(".", ",")} mi).`, "proposta", { type: "offerForPlayer", playerId: p.id, fromClub: b.id, fee, loan });
 }
 
 function jobOffer(st: GameState, force = false) {
@@ -383,8 +383,8 @@ function evaluateSponsors(st: GameState) {
   for (const s of st.sponsors) {
     const g = s.goal;
     const ok = g.type === "pos" ? pos <= g.target : g.type === "wins" ? st.seasonStats.wins >= g.target : g.type === "title" ? st.seasonStats.titles.length >= 1 : g.type === "cup" ? (st.seasonStats.cupRounds[nat] ?? 0) >= g.target : contQual;
-    if (ok) { add(st, "inc", "Patrocínios", s.bonus); msg(st, `Meta batida: ${s.company}`, `Meta "${g.text}" cumprida. Bônus de R$ ${(s.bonus / 1e6).toFixed(2)} mi recebido.`, "patrocinio"); }
-    else if (s.penalty > 0) { add(st, "exp", "Multas contratuais", s.penalty); msg(st, `Meta não cumprida: ${s.company}`, `Multa de R$ ${(s.penalty / 1e6).toFixed(2)} mi aplicada por não cumprir "${g.text}".`, "patrocinio"); }
+    if (ok) { add(st, "inc", "Patrocínios", s.bonus); msg(st, `Meta batida: ${s.company}`, `Meta "${g.text}" cumprida. Bônus de R$ ${(s.bonus / 1e6).toFixed(2).replace(".", ",")} mi recebido.`, "patrocinio"); }
+    else if (s.penalty > 0) { add(st, "exp", "Multas contratuais", s.penalty); msg(st, `Meta não cumprida: ${s.company}`, `Multa de R$ ${(s.penalty / 1e6).toFixed(2).replace(".", ",")} mi aplicada por não cumprir "${g.text}".`, "patrocinio"); }
     s.left = (s.left ?? s.years) - 1;
   }
   const expiring = st.sponsors.filter((s) => (s.left ?? 0) <= 0);
@@ -392,7 +392,7 @@ function evaluateSponsors(st: GameState) {
   for (const s of expiring) {
     const nv = Math.round(s.value * (0.9 + st.board.fans / 300) / 10000) * 10000;
     st.sponsorOffers.unshift({ ...s, id: st.nextSponsorId++, value: nv, left: undefined, start: undefined });
-    msg(st, `Renovação: ${s.company}`, `O contrato com ${s.company} terminou. A empresa propõe renovar por R$ ${(nv / 1e6).toFixed(1)} mi/temporada. Veja em Patrocínios.`, "patrocinio");
+    msg(st, `Renovação: ${s.company}`, `O contrato com ${s.company} terminou. A empresa propõe renovar por R$ ${(nv / 1e6).toFixed(1).replace(".", ",")} mi/temporada. Veja em Patrocínios.`, "patrocinio");
   }
   for (const s of st.sponsors) if (s.payment === "anual") add(st, "inc", "Patrocínios", s.value);
 }
@@ -532,7 +532,7 @@ export function endSeason(st: GameState) {
     st.sponsorOffers = [...st.sponsorOffers.filter((o) => !st.sponsors.some((s) => s.slot === o.slot)), ...genSponsorOffers(st)].slice(0, 24);
     const c = st.clubs[st.userClub];
     c.transferBudget = Math.max(c.transferBudget, Math.round(Math.max(0, c.balance) * 0.25));
-    msg(st, `Temporada ${st.season} começou`, `Novo objetivo da diretoria: ${st.board.objective.text}. Orçamento de transferências: R$ ${(c.transferBudget / 1e6).toFixed(1)} mi.`, "diretoria");
+    msg(st, `Temporada ${st.season} começou`, `Novo objetivo da diretoria: ${st.board.objective.text}. Orçamento de transferências: R$ ${(c.transferBudget / 1e6).toFixed(1).replace(".", ",")} mi.`, "diretoria");
     // fix lineup references
     const ids = new Set(c.players);
     st.tactic.starters = st.tactic.starters.map((x) => (x !== null && ids.has(x) ? x : null));
