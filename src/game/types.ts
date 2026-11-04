@@ -61,7 +61,7 @@ export interface Club {
 }
 
 export interface Fixture {
-  h: number; a: number; hg?: number; ag?: number; pen?: [number, number]; played?: boolean; comp: string;
+  h: number; a: number; hg?: number; ag?: number; pen?: [number, number]; played?: boolean; comp: string; grp?: number;
 }
 
 export interface Row { p: number; w: number; d: number; l: number; gf: number; ga: number; pts: number; form: string[] }
@@ -74,6 +74,8 @@ export interface League {
 export interface Cup {
   id: string; name: string; kind: "nacional" | "continental" | "mundial"; country?: string;
   alive: number[]; rounds: Fixture[][]; winner?: number; scorers: Record<number, number>; entrants: number[];
+  /** group stage: clubs per group and their tables (first `groupRounds` rounds are group matchdays) */
+  groups?: number[][]; gtable?: Record<number, Row>; groupRounds?: number;
 }
 
 export interface DayPlan { kind: "league" | "cup"; leagueRound?: number; cups?: string[]; cupRound?: number; label: string }
@@ -167,4 +169,7 @@ export interface GameState {
   userMatchDone: boolean;
   lastStandings: Record<string, number[]>;
   fired?: boolean;
+  transferLog?: TransferRecord[];
 }
+
+export interface TransferRecord { season: number; day: number; pid: number; name: string; pos: Pos; ovr: number; from: number | null; to: number | null; fee: number; kind: "compra" | "emprestimo" | "livre" | "doacao" }
