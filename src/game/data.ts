@@ -264,7 +264,7 @@ export const COUNTRIES: CountryDef[] = [
     id: "URU", name: "Uruguai", flag: "🇺🇾", conf: "CONMEBOL", strength: 0.74, swap: 2,
     leagues: [{ id: "URU1", name: "Primera División (URU)", teams: 16 }, { id: "URU2", name: "Segunda División (URU)", teams: 14 }],
     cup: { id: "AUF", name: "Copa AUF Uruguay" },
-    clubs: ["Peñarol", "Nacional", "Defensor Sporting", "Liverpool Montevideo", "Danubio", "Montevideo Wanderers", "Racing Montevideo", "Cerro Largo", "Boston River", "Progreso", "Plaza Colonia", "Juventud de Las Piedras", "Cerro", "River Plate Montevideo", "Miramar Misiones", "Montevideo City Torque",
+    clubs: ["Peñarol", "Nacional Montevideo", "Defensor Sporting", "Liverpool Montevideo", "Danubio", "Montevideo Wanderers", "Racing Montevideo", "Cerro Largo", "Boston River", "Progreso", "Plaza Colonia", "Juventud de Las Piedras", "Cerro", "River Plate Montevideo", "Miramar Misiones", "Montevideo City Torque",
       "Fénix", "Rampla Juniors", "Atenas", "Uruguay Montevideo", "Rentistas", "Sud América", "Albion FC", "Colón FC", "Central Español", "Tacuarembó", "Oriental", "Deportivo Maldonado", "Villa Española", "Cooper"],
     cities: ["Salto", "Paysandú"],
     pattern: (c) => `Club ${c}`,

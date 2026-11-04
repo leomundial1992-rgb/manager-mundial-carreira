@@ -1,4 +1,4 @@
-import { CLUB_COLORS, CONTINENTAL, COUNTRIES, COUNTRY, FOREIGN_NATS, GARRO, KIT_COLORS, SPFC_SQUAD, WORLD_CUP, type RefPlayer } from "./data";
+import { type CountryDef, CLUB_COLORS, CONTINENTAL, COUNTRIES, COUNTRY, FOREIGN_NATS, GARRO, KIT_COLORS, SPFC_SQUAD, WORLD_CUP, type RefPlayer } from "./data";
 import type { Club, Cup, DayPlan, Difficulty, Fixture, GameState, League, Objective, Player, Pos, Row } from "./types";
 import { choice, clamp, gauss, ovr, POS_WEIGHTS, rand, randInt, shuffle, wageDemand } from "./util";
 import { autoLineup } from "./match";
@@ -69,8 +69,23 @@ export function createWorld(difficulty: Difficulty): GameState {
     seasonStats: { wins: 0, draws: 0, losses: 0, cupRounds: {}, titles: [] }, honours: [], lastResults: [], shortlist: [],
     userMatchDone: false, lastStandings: {},
   };
-  for (const c of COUNTRIES) {
-    const used = new Set<string>();
+  for (const c of COUNTRIES) addCountry(st, c);
+  // free agents
+  for (let i = 0; i < 80; i++) {
+    const pos = choice(SQUAD_TEMPLATE);
+    const p = genPlayer(st, choice(["BRA", "ARG", "ESP", "POR", "FRA", "ITA", "URU", "COL"]), pos, randInt(48, 72), randInt(19, 34), null);
+    p.contract = 0;
+    st.freeAgents.push(p.id);
+  }
+  setupSeason(st);
+  return st;
+}
+
+
+/** Builds a country's leagues, clubs and squads. Exported so old saves can gain new countries. */
+export function addCountry(st: GameState, c: CountryDef) {
+  const taken = new Set(st.clubs.map((x) => x.name));
+    const used = new Set<string>(taken);
     const names: string[] = [];
     const total = c.leagues.reduce((s, l) => s + l.teams, 0);
     for (const n of c.clubs) if (names.length < total && !used.has(n)) { names.push(n); used.add(n); }
@@ -120,15 +135,23 @@ export function createWorld(difficulty: Difficulty): GameState {
       st.leagues[ld.id] = league;
     });
   }
-  // free agents
-  for (let i = 0; i < 80; i++) {
-    const pos = choice(SQUAD_TEMPLATE);
-    const p = genPlayer(st, choice(["BRA", "ARG", "ESP", "POR", "FRA", "ITA", "URU", "COL"]), pos, randInt(48, 72), randInt(19, 34), null);
-    p.contract = 0;
-    st.freeAgents.push(p.id);
+
+/** Migrates older saves: adds countries that did not exist when the career started. */
+export function ensureWorld(st: GameState): boolean {
+  let changed = false;
+  for (const c of COUNTRIES) {
+    if (st.leagues[c.leagues[0].id]) continue;
+    addCountry(st, c);
+    for (const ld of c.leagues) {
+      const l = st.leagues[ld.id];
+      l.rounds = roundRobin(l.clubs, l.id);
+      l.table = Object.fromEntries(l.clubs.map((id) => [id, emptyRow()]));
+    }
+    changed = true;
   }
-  setupSeason(st);
-  return st;
+  st.transferLog ??= [];
+  if (changed) st.version = Math.max(st.version, 2);
+  return changed;
 }
 
 export function shortName(n: string) {
