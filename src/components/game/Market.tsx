@@ -4,7 +4,7 @@ import { ATTR_NAMES } from "@/game/types";
 import { mutate } from "@/game/store";
 import { askingPrice, clubResponse, evaluateContract, finishSigning, playerDemands, scoutPot, search, type Filters } from "@/game/market";
 import { money, ovr, playerValue } from "@/game/util";
-import { userWages } from "@/game/engine";
+import { userWages, windowOpen } from "@/game/engine";
 import { NAT_NAME } from "@/game/data";
 import { notify } from "@/game/events";
 import { PlayerLine, Section, Sheet, Stat, Tabs } from "./ui";
@@ -12,7 +12,7 @@ import { ContractInputs, PlayerSheet } from "./Squad";
 
 export function MarketScreen({ st, initialPlayer }: { st: GameState; initialPlayer?: number }) {
   const me = st.clubs[st.userClub!];
-  const [tab, setTab] = useState<"busca" | "livres" | "lista">("busca");
+  const [tab, setTab] = useState<"busca" | "livres" | "lista" | "central">("busca");
   const [f, setF] = useState<Filters>({ pos: "", maxAge: 0, minPot: 0, minOvr: 0 });
   const [applied, setApplied] = useState<Filters>({ minOvr: Math.max(50, me.rep - 15) });
   const [sel, setSel] = useState<number | null>(initialPlayer ?? null);
@@ -27,8 +27,9 @@ export function MarketScreen({ st, initialPlayer }: { st: GameState; initialPlay
         <Stat label="Orçamento transferências" value={money(me.transferBudget)} />
         <Stat label="Folha / limite (mês)" value={money(userWages(st))} sub={`limite ${money(me.wageBudget)}`} />
       </div>
-      <Tabs value={tab} onChange={setTab} items={[{ id: "busca", label: "Olheiros" }, { id: "livres", label: "Jogadores livres" }, { id: "lista", label: `Observados (${st.shortlist.length})` }]} />
-      {tab !== "lista" && (
+      <Tabs value={tab} onChange={setTab} items={[{ id: "busca", label: "Olheiros" }, { id: "livres", label: "Jogadores livres" }, { id: "lista", label: `Observados (${st.shortlist.length})` }, { id: "central", label: "Central" }]} />
+      {tab === "central" && <MarketCentral st={st} />}
+      {tab !== "lista" && tab !== "central" && (
         <div className="mm-card mb-3 grid grid-cols-2 gap-2">
           <label className="col-span-2 text-xs text-muted-foreground">Nome<input className="mm-input mt-1" value={f.name ?? ""} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Ex.: Garro" /></label>
           <label className="text-xs text-muted-foreground">Posição<select className="mm-input mt-1" value={f.pos} onChange={(e) => setF({ ...f, pos: e.target.value as Pos | "" })}><option value="">Todas</option>{["GOL", "ZAG", "LAT", "VOL", "MEI", "PON", "ATA"].map((p) => <option key={p}>{p}</option>)}</select></label>
@@ -144,5 +145,31 @@ function Negotiation({ st, pid, onClose }: { st: GameState; pid: number; onClose
         </>
       )}
     </Sheet>
+  );
+}
+
+const KIND_LABEL = { compra: "Compra", emprestimo: "Empréstimo", livre: "Livre", doacao: "Doação" } as const;
+function MarketCentral({ st }: { st: GameState }) {
+  const me = st.clubs[st.userClub!];
+  const [scope, setScope] = useState<"todas" | "pais" | "minhas">("todas");
+  const log = (st.transferLog ?? []).filter((t) => scope === "todas" || (scope === "minhas" ? t.from === me.id || t.to === me.id : [t.from, t.to].some((c) => c !== null && st.clubs[c].country === me.country)));
+  const name = (c: number | null) => (c === null ? "Sem clube" : st.clubs[c].name);
+  return (
+    <div>
+      <div className="mm-card mb-3 text-sm">
+        Janela de transferências: <b className={windowOpen(st) ? "text-success" : "text-destructive"}>{windowOpen(st) ? "ABERTA" : "FECHADA"}</b>
+        <p className="mt-1 text-xs text-muted-foreground">Os clubes do mundo se reforçam entre si durante as janelas (início e metade da temporada). Todas as movimentações aparecem aqui.</p>
+      </div>
+      <Tabs value={scope} onChange={setScope} items={[{ id: "todas", label: "Mundo" }, { id: "pais", label: "Meu país" }, { id: "minhas", label: "Meu clube" }]} />
+      <div className="mm-card">
+        {log.slice(0, 120).map((t, i) => (
+          <div key={i} className="border-b py-2 text-sm last:border-b-0">
+            <div className="flex justify-between gap-2"><b className="truncate">{t.kind === "doacao" ? "💸 Doação" : `${t.name} · ${t.pos} ${t.ovr}`}</b><span className="shrink-0 font-semibold">{t.fee ? money(t.fee) : "—"}</span></div>
+            <div className="text-xs text-muted-foreground">{name(t.from)} → {name(t.to)} · {KIND_LABEL[t.kind]} · {t.season} sem. {t.day + 1}</div>
+          </div>
+        ))}
+        {!log.length && <p className="text-sm text-muted-foreground">Nenhuma movimentação registrada ainda. Avance as semanas com a janela aberta.</p>}
+      </div>
+    </div>
   );
 }
