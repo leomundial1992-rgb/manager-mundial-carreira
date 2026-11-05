@@ -1,6 +1,6 @@
 import type { GameState, Player, Pos } from "./types";
 import { clamp, ovr, playerValue, rand, wageDemand } from "./util";
-import { add, msg, userWages } from "./engine";
+import { add, logTransfer, msg, userWages } from "./engine";
 
 export interface Filters { pos?: Pos | ""; minAge?: number; maxAge?: number; nat?: string; maxValue?: number; minPot?: number; minOvr?: number; attr?: number; attrMin?: number; free?: boolean; name?: string }
 
@@ -118,6 +118,7 @@ export function finishSigning(st: GameState, o: ContractOffer): { ok: boolean; t
   st.board.fans = clamp(st.board.fans + Math.max(0, (ovr(p) - me.rep) / 3 + 1), 0, 100);
   st.cohesion = clamp(st.cohesion - 1.5, 0, 100);
   msg(st, `Contratado: ${p.name}`, `${p.name} ${pend.kind === "emprestimo" ? "chega por empréstimo" : "assina contrato"}${from !== null ? ` vindo do ${st.clubs[from].name}` : ""}. Custo: R$ ${(cost / 1e6).toFixed(2).replace(".", ",")} mi. Salário R$ ${(o.wage / 1e3).toFixed(0)} mil/mês.`, "noticia");
+  logTransfer(st, p.id, from, me.id, pend.fee, from === null ? "livre" : pend.kind === "emprestimo" ? "emprestimo" : "compra");
   st.pending = null;
   return { ok: true, text: "Contratação concluída!" };
 }
@@ -153,6 +154,7 @@ export function sellTo(st: GameState, pid: number, clubId: number, fee: number, 
   if (loan) { p.loanFrom = me.id; p.loanWagePct = 100; }
   else { me.transferBudget += Math.round(fee * 0.6); p.contract = Math.max(p.contract, 3); }
   p.club = clubId; p.listed = false;
+  logTransfer(st, pid, me.id, clubId, fee, loan ? "emprestimo" : "compra");
   const star = ovr(p) >= me.rep;
   if (!loan) st.board.fans = clamp(st.board.fans - (star ? 6 : 1), 0, 100);
   msg(st, loan ? `${p.name} emprestado` : `Vendido: ${p.name}`, `${p.name} ${loan ? "foi emprestado" : "foi vendido"} ao ${buyer.name} por R$ ${(fee / 1e6).toFixed(2).replace(".", ",")} mi.${!loan && star ? " A torcida não gostou da saída." : ""}`, "noticia");
@@ -187,4 +189,24 @@ export function release(st: GameState, pid: number) {
   p.club = null; p.contract = 0;
   st.freeAgents.push(pid);
   msg(st, `Rescisão: ${p.name}`, `Contrato rescindido. Multa paga: R$ ${(cost / 1e6).toFixed(2).replace(".", ",")} mi.`, "contrato");
+}
+
+/** Donates money from the user's bank balance to another club. */
+export function donate(st: GameState, clubId: number, amount: number): { ok: boolean; text: string } {
+  if (st.userClub === null) return { ok: false, text: "Você não comanda um clube." };
+  const me = st.clubs[st.userClub];
+  if (clubId === me.id || !st.clubs[clubId]) return { ok: false, text: "Escolha outro clube." };
+  if (!(amount > 0)) return { ok: false, text: "Informe um valor." };
+  if (amount > me.balance) return { ok: false, text: "Saldo bancário insuficiente." };
+  const to = st.clubs[clubId];
+  me.balance -= amount;
+  me.transferBudget = Math.min(me.transferBudget, me.balance);
+  to.balance += amount;
+  to.transferBudget += Math.round(amount * 0.5);
+  add(st, "exp", "Doações", amount);
+  st.board.confidence = clamp(st.board.confidence - Math.min(15, Math.round(amount / me.balance * 20 + 1)), 0, 100);
+  st.coach.rep = clamp(st.coach.rep + (amount >= 1_000_000 ? 1 : 0), 1, 99);
+  (st.transferLog ??= []).unshift({ season: st.season, day: st.day, pid: -1, name: "Doação", pos: "MEI", ovr: 0, from: me.id, to: clubId, fee: amount, kind: "doacao" });
+  msg(st, `Doação ao ${to.name}`, `O clube doou R$ ${(amount / 1e6).toFixed(2).replace(".", ",")} mi ao ${to.name}. A diretoria acompanha o gasto com atenção.`, "diretoria");
+  return { ok: true, text: "Doação realizada." };
 }

@@ -1,3 +1,4 @@
+import { ensureWorld } from "./world";
 import { useSyncExternalStore } from "react";
 import type { GameState } from "./types";
 
@@ -37,7 +38,10 @@ export async function loadSave(): Promise<GameState | null> {
       r.onsuccess = () => res(r.result as string | undefined);
       r.onerror = () => rej(r.error);
     });
-    return raw ? (JSON.parse(raw) as GameState) : null;
+    if (!raw) return null;
+    const g = JSON.parse(raw) as GameState;
+    ensureWorld(g);
+    return g;
   } catch {
     return null;
   }

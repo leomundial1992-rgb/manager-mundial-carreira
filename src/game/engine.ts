@@ -1,9 +1,9 @@
 import { CONTINENTAL, COUNTRIES, COUNTRY } from "./data";
 import { buildSide, MatchSim } from "./match";
-import type { Cup, Fixture, GameState, League, Message, Player } from "./types";
+import type { Cup, Fixture, GameState, League, Message, Player, TransferRecord } from "./types";
 import { A } from "./types";
 import { choice, clamp, ovr, playerValue, rand, randInt, wageDemand } from "./util";
-import { emptyRow, genPlayer, makeObjective, prepareDay, setupSeason, sortedTable, tierFactor, assignUserClub } from "./world";
+import { emptyRow, genPlayer, makeObjective, prepareDay, setupSeason, sortedTable, tierFactor, assignUserClub, sortGroup } from "./world";
 import { genSponsorOffers } from "./sponsors";
 
 export const DIFF_MULT = { facil: 0.6, normal: 1, dificil: 1.3, realista: 1.6 };
