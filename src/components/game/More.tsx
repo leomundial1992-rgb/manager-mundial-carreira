@@ -4,6 +4,7 @@ import type { Facilities, GameState } from "@/game/types";
 import { mutate, saveNow } from "@/game/store";
 import { DEF_FOCUS, TRAINING_TYPES, userWages, add, msg } from "@/game/engine";
 import { negotiateSponsor } from "@/game/sponsors";
+import { donate } from "@/game/market";
 import { SPONSOR_SLOTS } from "@/game/data";
 import { money } from "@/game/util";
 import { notify } from "@/game/events";
@@ -155,6 +156,7 @@ function Finance({ st }: { st: GameState }) {
           </div>
         </div>
       </Section>
+      <DonationBox st={st} />
       <Section title="Relatórios mensais">
         {ledger.slice(0, 12).map((l, i) => (
           <details key={i} className="mm-card mb-2" open={i === 0}>
@@ -247,5 +249,33 @@ function History({ st }: { st: GameState }) {
         <div className="mm-card max-h-96 overflow-y-auto">{[...st.honours].reverse().slice(0, 80).map((h, i) => <div key={i} className="flex justify-between border-b py-1.5 text-sm last:border-b-0"><span>{h.season} · {h.comp}</span><b>{st.clubs[h.club].name}</b></div>)}{!st.honours.length && <p className="text-sm text-muted-foreground">Os campeões aparecem conforme as competições terminam.</p>}</div>
       </Section>
     </div>
+  );
+}
+
+function DonationBox({ st }: { st: GameState }) {
+  const me = st.clubs[st.userClub!];
+  const [q, setQ] = useState("");
+  const [club, setClub] = useState<number | null>(null);
+  const [mi, setMi] = useState(1);
+  const [confirm, setConfirm] = useState(false);
+  const found = q.length >= 2 ? st.clubs.filter((c) => c.id !== me.id && c.name.toLowerCase().includes(q.toLowerCase())).slice(0, 6) : [];
+  const amount = Math.round(mi * 1_000_000);
+  return (
+    <Section title="Doar dinheiro a outro clube">
+      <div className="mm-card text-sm">
+        <p className="mb-2 text-muted-foreground">Sai do saldo bancário. A diretoria perde um pouco de confiança com o gasto.</p>
+        <input className="mm-input mb-2" placeholder="Buscar clube (ex.: Santos)" value={q} onChange={(e) => { setQ(e.target.value); setClub(null); setConfirm(false); }} />
+        {found.map((c) => <button key={c.id} onClick={() => { setClub(c.id); setQ(c.name); }} className={cn("mm-chip mb-1 mr-1", club === c.id && "border-primary")}>{c.name}</button>)}
+        <label className="mt-2 block text-xs text-muted-foreground">Valor (R$ mi)<input type="number" min={0.1} step={0.5} className="mm-input mt-1" value={mi} onChange={(e) => { setMi(Number(e.target.value)); setConfirm(false); }} /></label>
+        {!confirm ? (
+          <button className="mm-btn-primary mt-2 w-full" disabled={club === null || !(amount > 0)} onClick={() => setConfirm(true)}>Doar</button>
+        ) : (
+          <div className="mt-2 flex gap-2">
+            <button className="mm-btn-ghost flex-1" onClick={() => setConfirm(false)}>Cancelar</button>
+            <button className="mm-btn-primary flex-1" onClick={() => { let r = { ok: false, text: "" }; mutate((s) => { r = donate(s, club!, amount); }); notify(r.text); setConfirm(false); }}>Confirmar {money(amount)} ao {club !== null ? st.clubs[club].name : ""}</button>
+          </div>
+        )}
+      </div>
+    </Section>
   );
 }

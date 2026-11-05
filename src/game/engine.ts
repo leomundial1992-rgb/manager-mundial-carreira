@@ -1,9 +1,9 @@
 import { CONTINENTAL, COUNTRIES, COUNTRY } from "./data";
 import { buildSide, MatchSim } from "./match";
-import type { Cup, Fixture, GameState, League, Message, Player } from "./types";
+import type { Cup, Fixture, GameState, League, Message, Player, TransferRecord } from "./types";
 import { A } from "./types";
 import { choice, clamp, ovr, playerValue, rand, randInt, wageDemand } from "./util";
-import { emptyRow, genPlayer, makeObjective, prepareDay, setupSeason, sortedTable, tierFactor, assignUserClub } from "./world";
+import { emptyRow, genPlayer, makeObjective, prepareDay, setupSeason, sortedTable, tierFactor, assignUserClub, sortGroup } from "./world";
 import { genSponsorOffers } from "./sponsors";
 
 export const DIFF_MULT = { facil: 0.6, normal: 1, dificil: 1.3, realista: 1.6 };
@@ -38,7 +38,7 @@ export function nextUserFixtures(st: GameState, n = 6) {
   return out;
 }
 
-const isKnockout = (st: GameState, comp: string) => !!st.cups[comp];
+const isKnockout = (st: GameState, f: Fixture) => !!st.cups[f.comp] && f.grp === undefined;
 
 export function createMatch(st: GameState, f: Fixture): MatchSim {
   const sides: [ReturnType<typeof buildSide>, ReturnType<typeof buildSide>] = [
@@ -46,7 +46,7 @@ export function createMatch(st: GameState, f: Fixture): MatchSim {
     buildSide(st, f.a, f.a === st.userClub, st.tactic),
   ];
   const neutral = st.cups[f.comp]?.kind === "mundial";
-  return new MatchSim(st, sides, !neutral, isKnockout(st, f.comp), f.comp);
+  return new MatchSim(st, sides, !neutral, isKnockout(st, f), f.comp);
 }
 
 function scorersOf(st: GameState, comp: string): Record<number, number> {
@@ -159,7 +159,9 @@ export function quickSim(st: GameState, f: Fixture, autoSubs = false) {
 }
 
 const CUP_ROUND_NAMES = (cup: Cup, r: number) => {
-  const left = cup.entrants.length / Math.pow(2, r);
+  const gr = cup.groups ? cup.groupRounds ?? 6 : 0;
+  if (r < gr) return `Fase de grupos · ${r + 1}ª rodada`;
+  const left = (gr ? cup.groups!.length * 2 : cup.entrants.length) / Math.pow(2, r - gr);
   return left === 2 ? "Final" : left === 4 ? "Semifinal" : left === 8 ? "Quartas de final" : left === 16 ? "Oitavas de final" : `${left} times`;
 };
 export const cupRoundName = CUP_ROUND_NAMES;
@@ -171,11 +173,39 @@ function resolveCups(st: GameState) {
     const cup = st.cups[cid];
     const fx = cup.rounds[d.cupRound!];
     if (!fx || cup.winner !== undefined) continue;
+    const gr = cup.groups ? cup.groupRounds ?? 6 : 0;
+    const prize = CONTINENTAL.find((c) => c.id === cid)?.prize ?? 1_000_000;
+    if (d.cupRound! < gr) {
+      const t = (cup.gtable ??= {});
+      for (const f of fx) {
+        const H = (t[f.h] ??= emptyRow()), W = (t[f.a] ??= emptyRow());
+        H.p++; W.p++; H.gf += f.hg!; H.ga += f.ag!; W.gf += f.ag!; W.ga += f.hg!;
+        if (f.hg! > f.ag!) { H.w++; H.pts += 3; W.l++; } else if (f.hg! < f.ag!) { W.w++; W.pts += 3; H.l++; } else { H.d++; W.d++; H.pts++; W.pts++; }
+        const u = st.userClub;
+        if (u !== null && (f.h === u || f.a === u)) {
+          const won = (f.h === u && f.hg! > f.ag!) || (f.a === u && f.ag! > f.hg!);
+          const drew = f.hg === f.ag;
+          if (won || drew) add(st, "inc", "Premiações", Math.round(prize * (won ? 1 : 0.35)));
+        }
+      }
+      if (d.cupRound === gr - 1) {
+        const ranked = cup.groups!.map((g) => sortGroup(cup, g));
+        const alive: number[] = [];
+        for (let i = 0; i + 1 < ranked.length; i += 2) alive.push(ranked[i][0], ranked[i + 1][1], ranked[i + 1][0], ranked[i][1]);
+        cup.alive = alive;
+        const u = st.userClub;
+        if (u !== null && cup.entrants.includes(u)) {
+          if (alive.includes(u)) { st.seasonStats.cupRounds[cid] = 1; add(st, "inc", "Premiações", prize * 2); msg(st, `Classificado no grupo da ${cup.name}!`, `O clube avançou às oitavas de final. Prêmio de classificação: R$ ${(prize * 2 / 1e6).toFixed(1).replace(".", ",")} mi.`, "noticia"); }
+          else { st.seasonStats.cupRounds[cid] = 0; msg(st, `Eliminado na fase de grupos da ${cup.name}`, "O clube não ficou entre os dois primeiros do grupo.", "noticia"); }
+        }
+      }
+      continue;
+    }
     const winners = fx.map((f) => (f.hg! > f.ag! ? f.h : f.ag! > f.hg! ? f.a : f.pen && f.pen[0] > f.pen[1] ? f.h : f.a));
     if (st.userClub !== null && cup.alive.includes(st.userClub)) {
       const iWin = winners.includes(st.userClub);
-      st.seasonStats.cupRounds[cid] = d.cupRound! + (iWin ? 1 : 0);
-      if (iWin) add(st, "inc", "Premiações", Math.round(1_500_000 * (d.cupRound! + 1) * (cup.kind === "nacional" ? 1 : 2.5)));
+      st.seasonStats.cupRounds[cid] = d.cupRound! - gr + (gr ? 1 : 0) + (iWin ? 1 : 0);
+      if (iWin) add(st, "inc", "Premiações", Math.round(cup.kind === "continental" ? prize * 1.5 * (d.cupRound! - gr + 2) : 1_500_000 * (d.cupRound! + 1) * (cup.kind === "nacional" ? 1 : 2.5)));
       if (!iWin) msg(st, `Eliminado da ${cup.name}`, `O clube foi eliminado na fase ${CUP_ROUND_NAMES(cup, d.cupRound!)}.`, "noticia");
     }
     cup.alive = winners;
@@ -274,6 +304,65 @@ export function monthlyFinances(st: GameState) {
 export const userWages = (st: GameState) =>
   st.userClub === null ? 0 : st.clubs[st.userClub].players.reduce((s, id) => s + st.players[id].wage, 0);
 
+// ---------- AI market ----------
+/** Transfer windows: pre-season (first weeks) and mid-season. */
+export function windowOpen(st: GameState, day = st.day) {
+  const half = Math.floor(st.schedule.length / 2);
+  return day < 6 || (day >= half && day < half + 4);
+}
+
+export function logTransfer(st: GameState, pid: number, from: number | null, to: number | null, fee: number, kind: TransferRecord["kind"]) {
+  const p = st.players[pid];
+  (st.transferLog ??= []).unshift({ season: st.season, day: st.day, pid, name: p?.name ?? "—", pos: p?.pos ?? "MEI", ovr: p ? ovr(p) : 0, from, to, fee, kind });
+  if (st.transferLog.length > 400) st.transferLog.length = 400;
+}
+
+/** AI clubs buy and loan players among themselves while a window is open. */
+export function aiMarket(st: GameState) {
+  if (!windowOpen(st)) return;
+  const n = randInt(6, 14);
+  for (let k = 0; k < n; k++) {
+    const buyer = st.clubs[randInt(0, st.clubs.length - 1)];
+    if (buyer.id === st.userClub || buyer.players.length >= 28) continue;
+    const squad = buyer.players.map((id) => st.players[id]);
+    const avg = squad.reduce((s, p) => s + ovr(p), 0) / Math.max(1, squad.length);
+    const pos = choice(["GOL", "ZAG", "LAT", "VOL", "MEI", "PON", "ATA"] as const);
+    const loan = rand() < 0.25;
+    const pool: Player[] = [];
+    for (let t = 0; t < 40 && pool.length < 6; t++) {
+      const c = st.clubs[randInt(0, st.clubs.length - 1)];
+      if (c.id === buyer.id || c.id === st.userClub || c.players.length <= 18) continue;
+      const p = st.players[choice(c.players)];
+      if (!p || p.pos !== pos || p.loanFrom != null) continue;
+      const o = ovr(p);
+      if (o < avg + 1 || o > avg + 9) continue;
+      if (loan ? p.age > 23 : playerValue(p) > buyer.balance * 0.35) continue;
+      pool.push(p);
+    }
+    if (!pool.length) continue;
+    const p = pool.sort((a, b) => ovr(b) - ovr(a))[0];
+    const seller = st.clubs[p.club!];
+    const fee = loan ? Math.round(playerValue(p) * 0.08 / 10000) * 10000 : Math.round(playerValue(p) * (0.9 + rand() * 0.5) / 10000) * 10000;
+    if (!loan && rand() < 0.35) continue; // seller refuses
+    seller.players = seller.players.filter((x) => x !== p.id);
+    buyer.players.push(p.id);
+    seller.balance += fee; buyer.balance -= fee;
+    if (loan) p.loanFrom = seller.id; else p.contract = randInt(2, 5);
+    p.club = buyer.id; p.listed = false;
+    logTransfer(st, p.id, seller.id, buyer.id, fee, loan ? "emprestimo" : "compra");
+  }
+  // free agents get picked up too
+  for (let k = 0; k < 2 && st.freeAgents.length; k++) {
+    const pid = choice(st.freeAgents);
+    const p = st.players[pid];
+    const c = st.clubs.filter((c) => c.id !== st.userClub && c.players.length < 24 && Math.abs(c.rep * 0.55 + 30 - ovr(p)) < 6)[0];
+    if (!c) continue;
+    st.freeAgents = st.freeAgents.filter((x) => x !== pid);
+    c.players.push(pid); p.club = c.id; p.contract = randInt(1, 3);
+    logTransfer(st, pid, null, c.id, 0, "livre");
+  }
+}
+
 // ---------- AI offers & events ----------
 function aiOffers(st: GameState) {
   if (st.userClub === null) return;
@@ -335,6 +424,7 @@ export function finishDay(st: GameState) {
   }
   applyTraining(st);
   aiOffers(st);
+  aiMarket(st);
   if (st.day % 4 === 3) { monthlyFinances(st); jobOffer(st); }
   if (st.userClub !== null && (st.day === 20 || st.day === 40)) {
     const exp = st.clubs[st.userClub].players.map((id) => st.players[id]).filter((p) => p.contract <= 1 && p.loanFrom == null);
@@ -431,6 +521,7 @@ export function endSeason(st: GameState) {
     for (let t = 0; t < c.leagues.length - 1; t++) {
       const up = st.leagues[c.leagues[t].id], down = st.leagues[c.leagues[t + 1].id];
       const n = c.swap;
+      if (n <= 0) continue;
       const relegated = finals[up.id].slice(-n), promoted = finals[down.id].slice(0, n);
       up.clubs = up.clubs.filter((x) => !relegated.includes(x)).concat(promoted);
       down.clubs = down.clubs.filter((x) => !promoted.includes(x)).concat(relegated);

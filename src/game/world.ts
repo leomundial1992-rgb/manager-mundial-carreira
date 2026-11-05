@@ -201,7 +201,8 @@ export function setupSeason(st: GameState) {
   // national cups
   for (const c of COUNTRIES) {
     const ids = c.leagues.flatMap((ld) => st.leagues[ld.id].clubs.map((id) => ({ id, t: st.leagues[ld.id].tier })))
-      .sort((a, b) => a.t - b.t || st.clubs[b.id].rep - st.clubs[a.id].rep).slice(0, 32).map((x) => x.id);
+      .sort((a, b) => a.t - b.t || st.clubs[b.id].rep - st.clubs[a.id].rep).map((x) => x.id);
+    ids.length = Math.min(32, 2 ** Math.floor(Math.log2(ids.length)));
     const cup: Cup = { id: c.cup.id, name: c.cup.name, kind: "nacional", country: c.id, alive: ids, rounds: [], scorers: {}, entrants: ids };
     st.cups[cup.id] = cup;
   }
@@ -220,7 +221,11 @@ export function setupSeason(st: GameState) {
         used.add(id); entrants.push(id); n++;
       }
     }
-    st.cups[cd.id] = { id: cd.id, name: cd.name, kind: "continental", alive: shuffle(entrants), rounds: [], scorers: {}, entrants };
+    if (entrants.length < 32) {
+      const extra = st.clubs.filter((c) => COUNTRY[c.country]?.conf === cd.conf && st.leagues[c.league].tier === 1 && !used.has(c.id)).sort((a, b) => b.rep - a.rep);
+      for (const c of extra) { if (entrants.length >= 32) break; used.add(c.id); entrants.push(c.id); }
+    }
+    st.cups[cd.id] = makeGroupCup(st, cd.id, cd.name, entrants.slice(0, 32));
   }
   st.cups[WORLD_CUP.id] = { id: WORLD_CUP.id, name: WORLD_CUP.name, kind: "mundial", alive: [], rounds: [], scorers: {}, entrants: [] };
   // schedule
@@ -228,9 +233,9 @@ export function setupSeason(st: GameState) {
   const natCup = COUNTRIES.map((c) => c.cup.id);
   const cont = CONTINENTAL.map((c) => c.id);
   const natAfter = [3, 9, 15, 21, 27];
-  const contAfter = [6, 12, 18, 24];
+  const contAfter = [2, 5, 8, 11, 14, 17, 21, 25, 29, 33];
   const natNames = ["1ª fase", "Oitavas de final", "Quartas de final", "Semifinal", "Final"];
-  const contNames = ["Oitavas de final", "Quartas de final", "Semifinal", "Final"];
+  const contNames = ["Grupos 1ª rodada", "Grupos 2ª rodada", "Grupos 3ª rodada", "Grupos 4ª rodada", "Grupos 5ª rodada", "Grupos 6ª rodada", "Oitavas de final", "Quartas de final", "Semifinal", "Final"];
   for (let r = 0; r < 38; r++) {
     days.push({ kind: "league", leagueRound: r, label: `Rodada ${r + 1}` });
     const ni = natAfter.indexOf(r);
@@ -260,7 +265,8 @@ export function prepareDay(st: GameState) {
       cup.alive = shuffle(ent);
       cup.entrants = [...ent];
     }
-    const alive = shuffle(cup.alive);
+    // after the group stage, `alive` is already ordered in knockout pairs
+    const alive = cup.groups && d.cupRound === cup.groupRounds ? [...cup.alive] : shuffle(cup.alive);
     const fx: Fixture[] = [];
     for (let i = 0; i + 1 < alive.length; i += 2) fx.push({ h: alive[i], a: alive[i + 1], comp: cid });
     cup.rounds[d.cupRound!] = fx;
@@ -325,4 +331,28 @@ export function startCareer(st: GameState, clubId: number, coachName: string, sp
   if (garro && garro.club !== clubId) {
     pushMsg("Mercado: Rodrigo Garro disponível para empréstimo", "O Corinthians aceita ouvir propostas de empréstimo por uma temporada pelo meia Rodrigo Garro, com opção de compra. Toque para abrir a negociação.", "proposta", { type: "openPlayer", playerId: garro.id });
   }
+}
+
+const GROUP_RR = [[0, 1, 2, 3], [2, 0, 3, 1], [0, 3, 1, 2]];
+/** Builds a 32-club cup with 8 seeded groups of 4 (6 matchdays, top 2 advance to a 16-club knockout). */
+export function makeGroupCup(st: GameState, id: string, name: string, entrants: number[]): Cup {
+  const seeded = [...entrants].sort((a, b) => st.clubs[b].rep - st.clubs[a].rep);
+  const nG = Math.floor(seeded.length / 4);
+  const groups: number[][] = Array.from({ length: nG }, () => []);
+  for (let pot = 0; pot < 4; pot++) shuffle(seeded.slice(pot * nG, pot * nG + nG)).forEach((c, g) => groups[g].push(c));
+  const rounds: Fixture[][] = Array.from({ length: 6 }, () => []);
+  groups.forEach((g, gi) => GROUP_RR.forEach(([a, b, c, d], r) => {
+    rounds[r].push({ h: g[a], a: g[b], comp: id, grp: gi }, { h: g[c], a: g[d], comp: id, grp: gi });
+    rounds[r + 3].push({ h: g[b], a: g[a], comp: id, grp: gi }, { h: g[d], a: g[c], comp: id, grp: gi });
+  }));
+  const all = groups.flat();
+  return { id, name, kind: "continental", alive: all, rounds, scorers: {}, entrants: all, groups, groupRounds: 6, gtable: Object.fromEntries(all.map((c) => [c, emptyRow()])) };
+}
+
+export function sortGroup(cup: Cup, g: number[]): number[] {
+  const t = cup.gtable ?? {};
+  return [...g].sort((a, b) => {
+    const A = t[a] ?? emptyRow(), B = t[b] ?? emptyRow();
+    return B.pts - A.pts || (B.gf - B.ga) - (A.gf - A.ga) || B.gf - A.gf;
+  });
 }

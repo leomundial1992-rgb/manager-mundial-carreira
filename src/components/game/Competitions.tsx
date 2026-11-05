@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { GameState } from "@/game/types";
 import { COUNTRIES, COUNTRY } from "@/game/data";
 import { compName, cupRoundName, dayFixtures } from "@/game/engine";
-import { sortedTable } from "@/game/world";
+import { sortGroup, sortedTable } from "@/game/world";
 import { Crest, Section, Tabs } from "./ui";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +59,22 @@ export function CompetitionsScreen({ st }: { st: GameState }) {
       {view === "tabela" && cup && (
         <div>
           {cup.winner !== undefined && <div className="mm-card mb-3 text-center">🏆 Campeão: <b>{st.clubs[cup.winner].name}</b></div>}
+          {cup.groups && (
+            <Section title="Fase de grupos (2 primeiros avançam)">
+              <div className="grid gap-2">
+                {cup.groups.map((g, gi) => (
+                  <div key={gi} className="mm-card p-2">
+                    <b className="text-xs text-primary">Grupo {String.fromCharCode(65 + gi)}</b>
+                    {sortGroup(cup, g).map((id, i) => { const r = cup.gtable?.[id]; return (
+                      <div key={id} className={cn("flex items-center gap-2 py-1 text-sm", id === me.id && "bg-accent", i < 2 && "font-semibold")}>
+                        <span className="w-4">{i + 1}</span><Crest club={st.clubs[id]} size={18} /><span className="flex-1 truncate">{st.clubs[id].name}</span>
+                        <span className="w-14 text-right text-xs text-muted-foreground">{r?.p ?? 0}J {(r?.gf ?? 0) - (r?.ga ?? 0)}SG</span><span className="w-6 text-right">{r?.pts ?? 0}</span>
+                      </div>); })}
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
           {cup.rounds.map((r, i) => (
             <Section key={i} title={cupRoundName(cup, i)}>
               <div className="mm-card">{r.map((f, j) => <FixtureRow key={j} st={st} f={f} />)}</div>

@@ -15,3 +15,4 @@
 - One live game route (`/jogo`) with in-component tabs; cross-component navigation/toasts go through `src/game/events.ts` custom events to avoid importing route files.
 - Installability is manifest-only (`public/manifest.webmanifest`); no service worker.
 - Shared button/card styles are Tailwind v4 `@utility` classes (`mm-*`) in `src/styles.css`; `@apply` of custom classes inside `@layer` breaks the build.
+- Old saves are migrated on load via `ensureWorld` (adds countries missing from the save); new countries must be appendable without breaking running seasons.
