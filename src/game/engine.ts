@@ -634,3 +634,58 @@ export function endSeason(st: GameState) {
 
 export function leagueOf(st: GameState, clubId: number): League { return st.leagues[st.clubs[clubId].league]; }
 export function demandFor(st: GameState, p: Player) { return wageDemand(p, st.userClub !== null ? st.clubs[st.userClub].rep : 50); }
+
+export type BoardRequestKind = "folha" | "transferencias";
+export type BoardArg = "resultados" | "objetivo" | "venda";
+export const BOARD_COOLDOWN = 8;
+
+/** Days until the board accepts a new request (0 = available). */
+export function boardCooldown(st: GameState): number {
+  const b = st.board;
+  if (b.lastRequestDay === undefined || b.lastRequestSeason !== st.season) return 0;
+  return Math.max(0, BOARD_COOLDOWN - (st.day - b.lastRequestDay));
+}
+
+/** Coach asks the board to raise the wage cap or the transfer budget. Approval depends on confidence, cash and league position. */
+export function requestBoard(st: GameState, kind: BoardRequestKind, pct: number, arg: BoardArg): { ok: boolean; text: string } {
+  if (st.userClub === null) return { ok: false, text: "Sem clube." };
+  const wait = boardCooldown(st);
+  if (wait > 0) return { ok: false, text: `A diretoria só recebe um novo pedido em ${wait} rodada(s).` };
+  const me = st.clubs[st.userClub];
+  const free = me.balance - me.transferBudget;
+  const base = kind === "folha" ? me.wageBudget : Math.max(me.transferBudget, 2_000_000);
+  const extra = Math.round((base * pct) / 100 / 100_000) * 100_000;
+  const cost = kind === "folha" ? extra * 12 : extra;
+  st.board.lastRequestDay = st.day;
+  st.board.lastRequestSeason = st.season;
+  if (cost > free * 0.6) {
+    st.board.confidence = clamp(st.board.confidence - 2, 0, 100);
+    return { ok: false, text: "Pedido recusado: o clube não tem dinheiro em caixa para esse aumento." };
+  }
+  const l = st.leagues[me.league];
+  const pos = sortedTable(l).indexOf(me.id) + 1;
+  const n = l.clubs.length;
+  const played = l.table[me.id]?.p ?? 0;
+  let score = st.board.confidence - pct * 0.6;
+  if (played >= 3) score += pos <= n / 4 ? 15 : pos > (n * 3) / 4 ? -15 : 0;
+  if (arg === "resultados") score += played >= 3 && pos <= n / 3 ? 10 : -5;
+  if (arg === "objetivo") score += st.board.confidence >= 60 ? 10 : -5;
+  if (arg === "venda") score += 5;
+  score += free > cost * 4 ? 10 : 0;
+  const fmt = (v: number) => `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi`;
+  const apply = (v: number) => { if (kind === "folha") me.wageBudget += v; else me.transferBudget += v; };
+  const what = kind === "folha" ? "no teto da folha salarial (por mês)" : "no orçamento de transferências";
+  if (score >= 55) {
+    apply(extra);
+    msg(st, "Diretoria aprova pedido", `Aumento de ${fmt(extra)} ${what}.`, "diretoria");
+    return { ok: true, text: `Aprovado! +${fmt(extra)} ${what}.` };
+  }
+  if (score >= 38) {
+    const half = Math.round(extra / 2 / 100_000) * 100_000;
+    apply(half);
+    msg(st, "Diretoria aprova parcialmente", `Liberado ${fmt(half)} ${what}, metade do pedido.`, "diretoria");
+    return { ok: true, text: `Aprovado parcialmente: +${fmt(half)} ${what}.` };
+  }
+  st.board.confidence = clamp(st.board.confidence - 3, 0, 100);
+  return { ok: false, text: "Pedido recusado. A diretoria não está convencida e perdeu um pouco de confiança." };
+}
