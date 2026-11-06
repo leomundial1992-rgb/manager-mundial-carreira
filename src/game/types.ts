@@ -153,7 +153,7 @@ export interface GameState {
   tactic: Tactic;
   training: Training;
   cohesion: number;
-  board: { confidence: number; objective: Objective; fans: number };
+  board: { confidence: number; objective: Objective; fans: number; lastRequestDay?: number; lastRequestSeason?: number };
   sponsors: Sponsor[];
   sponsorOffers: Sponsor[];
   nextSponsorId: number;
