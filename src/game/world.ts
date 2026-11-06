@@ -2,6 +2,7 @@ import { type CountryDef, CLUB_COLORS, CONTINENTAL, COUNTRIES, COUNTRY, FOREIGN_
 import type { Club, Cup, DayPlan, Difficulty, Fixture, GameState, League, Objective, Player, Pos, Row } from "./types";
 import { choice, clamp, gauss, ovr, POS_WEIGHTS, rand, randInt, shuffle, wageDemand } from "./util";
 import { autoLineup } from "./match";
+import { REAL_SQUADS, type RealEntry } from "./realSquads";
 import { genSponsorOffers } from "./sponsors";
 
 const SQUAD_TEMPLATE: Pos[] = ["GOL", "GOL", "ZAG", "ZAG", "ZAG", "ZAG", "LAT", "LAT", "LAT", "VOL", "VOL", "VOL", "MEI", "MEI", "MEI", "PON", "PON", "PON", "ATA", "ATA"];
@@ -38,7 +39,35 @@ export function genPlayer(st: GameState, nat: string, pos: Pos, target: number, 
   return p;
 }
 
-function refPlayer(st: GameState, r: RefPlayer, club: number): Player {
+/** Potential from age: young players have room to grow, veterans are at their ceiling. */
+export function potFor(age: number, o: number): number {
+  if (age <= 21) return clamp(o + randInt(8, 16), o, 95);
+  if (age <= 25) return clamp(o + randInt(2, 6), o, 95);
+  if (age <= 29) return clamp(o + randInt(0, 2), o, 95);
+  return o;
+}
+
+const MIN_POS: Partial<Record<Pos, number>> = { GOL: 2, ZAG: 3, LAT: 2, VOL: 2, MEI: 2, PON: 2, ATA: 2 };
+
+/** Real squad from the user's list: keeps every listed player and explicit ratings; fills missing positions with generated players. */
+export function buildRealSquad(st: GameState, club: Club, list: RealEntry[]) {
+  const mean = 30 + club.rep * 0.55;
+  for (const [name, pos, given, nat] of list) {
+    const age = clamp(Math.round(26 + gauss() * 4), 17, 36);
+    const o = given > 0 ? given : clamp(Math.round(mean + gauss() * 4), 35, 90);
+    const p = refPlayer(st, { name, pos, age, ovr: o, pot: potFor(age, o), nat: nat || club.country, foot: rand() < 0.75 ? "D" : "E" }, club.id, club.rep);
+    if (name === GARRO.name) { Object.assign(p, { age: GARRO.age, pot: GARRO.pot, nat: GARRO.nat, foot: GARRO.foot, contract: 1, listed: true }); }
+    club.players.push(p.id);
+  }
+  const count = (ps: Pos) => club.players.filter((id) => st.players[id].pos === ps).length;
+  for (const [ps, n] of Object.entries(MIN_POS) as [Pos, number][]) {
+    while (count(ps) < n) club.players.push(genPlayer(st, club.country, ps, clamp(Math.round(mean - 3 + gauss() * 4), 30, 88), undefined, club.id).id);
+  }
+  let k = 0;
+  while (club.players.length < 18) club.players.push(genPlayer(st, club.country, SQUAD_TEMPLATE[k++ % SQUAD_TEMPLATE.length], clamp(Math.round(mean - 3 + gauss() * 4), 30, 88), undefined, club.id).id);
+}
+
+function refPlayer(st: GameState, r: RefPlayer, club: number, rep = 76): Player {
   const p = genPlayer(st, r.nat, r.pos as Pos, r.ovr, r.age, club, r.name);
   // nudge to exact overall
   for (let k = 0; k < 6; k++) {
@@ -49,7 +78,7 @@ function refPlayer(st: GameState, r: RefPlayer, club: number): Player {
   }
   p.pot = Math.max(r.pot, ovr(p));
   p.foot = r.foot;
-  p.wage = Math.round(wageDemand(p, 76) * 0.9 / 1000) * 1000;
+  p.wage = Math.round(wageDemand(p, rep) * 0.9 / 1000) * 1000;
   p.contract = randInt(1, 4);
   return p;
 }
@@ -116,6 +145,8 @@ export function addCountry(st: GameState, c: CountryDef) {
         league.clubs.push(club.id);
         if (name === "São Paulo") {
           for (const rp of SPFC_SQUAD) club.players.push(refPlayer(st, rp, club.id).id);
+        } else if (REAL_SQUADS[name]) {
+          buildRealSquad(st, club, REAL_SQUADS[name]);
         } else {
           const mean = 30 + rep * 0.55;
           for (const pos of SQUAD_TEMPLATE) {
@@ -123,7 +154,7 @@ export function addCountry(st: GameState, c: CountryDef) {
             const p = genPlayer(st, nat, pos, clamp(Math.round(mean + gauss() * 4.5), 30, 92), undefined, club.id);
             club.players.push(p.id);
           }
-          if (name === "Corinthians") {
+          if (name === "Corinthians" && !REAL_SQUADS[name]) {
             const g = refPlayer(st, GARRO, club.id);
             g.contract = 1;
             g.listed = true;
