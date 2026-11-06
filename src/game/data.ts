@@ -19,7 +19,7 @@ export const COUNTRIES: CountryDef[] = [
     cup: { id: "CBR", name: "Copa do Brasil" },
     clubs: ["Flamengo", "Palmeiras", "Botafogo", "São Paulo", "Corinthians", "Atlético-MG", "Fluminense", "Internacional", "Grêmio", "Cruzeiro", "Bahia", "Fortaleza", "Vasco da Gama", "Bragantino", "Santos", "Athletico-PR", "Vitória", "Juventude", "Ceará", "Mirassol",
       "Sport", "Cuiabá", "Goiás", "América-MG", "Coritiba", "Criciúma", "Atlético-GO", "Chapecoense", "Avaí", "Ponte Preta", "Guarani", "Novorizontino", "Vila Nova", "CRB", "Operário-PR", "Paysandu", "Remo", "Amazonas", "Botafogo-SP", "Ferroviária",
-      "Náutico", "Santa Cruz", "ABC", "CSA", "Figueirense", "Londrina", "Ituano", "Brusque", "Volta Redonda", "Tombense", "Ypiranga", "São Bernardo", "Confiança", "Caxias", "Athletic-MG", "Floresta", "Botafogo-PB", "Sampaio Corrêa", "Paraná", "Joinville"],
+      "Náutico", "Santa Cruz", "ABC", "CSA", "Figueirense", "Londrina", "Ituano", "Brusque", "Volta Redonda", "Tombense", "Ypiranga", "São Bernardo", "Confiança", "Caxias", "Athletic-MG", "Floresta", "Botafogo-PB", "Sampaio Corrêa", "Paraná", "Joinville", "Nacional-AM", "Manaus-AM", "Manauara-AM", "GAS-RR", "Monte Roraima-RR", "São Raimundo-RR", "Independência-AC", "Galvez-AC", "Humaitá-AC", "Porto Velho-RO"],
     cities: ["Uberlândia", "Campinas", "Ribeirão Preto", "Maringá", "Cascavel", "Petrolina", "Imperatriz", "Rondonópolis", "Anápolis", "Juiz de Fora", "Pelotas", "Bauru", "Franca", "Marília", "Caruaru", "Itabuna", "Macaé", "Patos", "Toledo", "Sobral"],
     pattern: (c, i) => `${pick(["EC", "AA", "Atlético", "União", "Esporte Clube", "Sport Club"], i)} ${c}`,
     first: ["Lucas", "Gabriel", "Matheus", "Pedro", "João", "Rafael", "Gustavo", "Felipe", "Bruno", "Thiago", "Vinícius", "Caio", "Igor", "Diego", "Rodrigo", "Wesley", "Kaio", "Davi", "Enzo", "Murilo"],
@@ -33,7 +33,7 @@ export const COUNTRIES: CountryDef[] = [
     ],
     cup: { id: "FAC", name: "FA Cup" },
     clubs: ["Manchester City", "Arsenal", "Liverpool", "Chelsea", "Manchester United", "Tottenham", "Newcastle", "Aston Villa", "Brighton", "West Ham", "Crystal Palace", "Brentford", "Fulham", "Wolves", "Bournemouth", "Nottingham Forest", "Everton", "Leicester", "Leeds", "Southampton",
-      "Burnley", "Sheffield United", "Sunderland", "West Brom", "Middlesbrough", "Norwich", "Coventry", "Watford", "Hull City", "Stoke City", "Swansea", "Cardiff", "Bristol City", "Millwall", "QPR", "Blackburn", "Preston", "Derby County", "Plymouth", "Luton"],
+      "Burnley", "Sheffield United", "Sunderland", "West Brom", "Middlesbrough", "Norwich", "Coventry", "Watford", "Hull City", "Stoke City", "Swansea", "Cardiff", "Bristol City", "Millwall", "QPR", "Blackburn", "Preston", "Derby County", "Plymouth", "Luton", "Portsmouth"],
     cities: ["Reading", "Bolton", "Wigan", "Barnsley", "Oxford", "Portsmouth", "Charlton", "Peterborough", "Lincoln", "Exeter", "Wycombe", "Cambridge", "Shrewsbury", "Burton", "Northampton", "Mansfield", "Bradford", "Doncaster", "Gillingham", "Crewe", "Walsall", "Notts", "Salford", "Tranmere"],
     pattern: (c, i) => `${c} ${pick(["Town", "United", "City", "Rovers", "Athletic", "Albion"], i)}`,
     first: ["Harry", "Jack", "James", "Oliver", "George", "Charlie", "Thomas", "Jacob", "Alfie", "Mason", "Declan", "Jordan", "Reece", "Kyle", "Callum", "Ben", "Luke", "Ollie", "Marcus", "Bukayo"],
@@ -59,7 +59,7 @@ export const COUNTRIES: CountryDef[] = [
     ],
     cup: { id: "CIT", name: "Coppa Italia" },
     clubs: ["Inter", "Napoli", "Milan", "Juventus", "Atalanta", "Roma", "Lazio", "Fiorentina", "Bologna", "Torino", "Udinese", "Genoa", "Como", "Monza", "Lecce", "Cagliari", "Verona", "Empoli", "Parma", "Venezia",
-      "Sassuolo", "Salernitana", "Frosinone", "Sampdoria", "Palermo", "Cremonese", "Spezia", "Bari", "Pisa", "Brescia", "Modena", "Catanzaro", "Reggiana", "Cittadella", "Südtirol", "Cosenza", "Mantova", "Juve Stabia"],
+      "Sassuolo", "Salernitana", "Frosinone", "Sampdoria", "Palermo", "Cremonese", "Spezia", "Bari", "Pisa", "Brescia", "Modena", "Catanzaro", "Reggiana", "Cittadella", "Südtirol", "Cosenza", "Mantova", "Juve Stabia", "Padova"],
     cities: ["Ascoli", "Perugia", "Ternana", "Pescara", "Vicenza", "Padova", "Triestina", "Avellino", "Foggia", "Livorno", "Lucchese", "Novara", "Alessandria", "Pro Vercelli", "Catania", "Messina"],
     pattern: (c, i) => `${pick(["US", "AC", "SS", "Calcio", "FC", "AS"], i)} ${c}`,
     first: ["Lorenzo", "Federico", "Alessandro", "Matteo", "Marco", "Nicolò", "Davide", "Andrea", "Giacomo", "Riccardo", "Gianluca", "Simone", "Sandro", "Manuel", "Francesco", "Luca", "Pietro", "Tommaso", "Ciro", "Mattia"],
@@ -72,7 +72,7 @@ export const COUNTRIES: CountryDef[] = [
     ],
     cup: { id: "DFB", name: "DFB-Pokal" },
     clubs: ["Bayern München", "Bayer Leverkusen", "Borussia Dortmund", "RB Leipzig", "Stuttgart", "Eintracht Frankfurt", "Freiburg", "Wolfsburg", "Hoffenheim", "Mönchengladbach", "Werder Bremen", "Union Berlin", "Mainz", "Augsburg", "Heidenheim", "St. Pauli", "Holstein Kiel", "Bochum",
-      "Hamburger SV", "Schalke 04", "Köln", "Hertha BSC", "Fortuna Düsseldorf", "Hannover 96", "Kaiserslautern", "Nürnberg", "Karlsruhe", "Paderborn", "Darmstadt", "Magdeburg", "Greuther Fürth", "Elversberg", "Braunschweig", "Regensburg", "Ulm", "Münster"],
+      "Hamburger SV", "Schalke 04", "Köln", "Hertha BSC", "Fortuna Düsseldorf", "Hannover 96", "Kaiserslautern", "Nürnberg", "Karlsruhe", "Paderborn", "Darmstadt", "Magdeburg", "Greuther Fürth", "Elversberg", "Braunschweig", "Regensburg", "Ulm", "Münster", "Arminia Bielefeld", "Dynamo Dresden"],
     cities: ["Dresden", "Saarbrücken", "Rostock", "Osnabrück", "Wiesbaden", "Aachen", "Essen", "Mannheim", "Ingolstadt", "Bielefeld", "Duisburg", "Verl", "Sandhausen", "Aue", "Unterhaching", "Cottbus"],
     pattern: (c, i) => `${pick(["SV", "FC", "VfB", "SpVgg", "TSV", "SC"], i)} ${c}`,
     first: ["Lukas", "Leon", "Jonas", "Felix", "Maximilian", "Niklas", "Florian", "Kai", "Jamal", "Florian", "Julian", "Tim", "Joshua", "Leroy", "Thomas", "Marco", "Robin", "David", "Benjamin", "Jan"],
@@ -300,10 +300,12 @@ export const FOREIGN_NATS = ["BRA", "ARG", "POR", "ESP", "FRA", "URU", "COL", "N
 export const NAT_FLAG: Record<string, string> = {
   ...Object.fromEntries(COUNTRIES.map((c) => [c.id, c.flag])),
   URU: "🇺🇾", COL: "🇨🇴", NGA: "🇳🇬", SEN: "🇸🇳", CIV: "🇨🇮", PAR: "🇵🇾", EQU: "🇪🇨", ANG: "🇦🇴",
+  NIR: "🇬🇧", IRL: "🇮🇪", WAL: "🏴", AUS: "🇦🇺", SWE: "🇸🇪", GHA: "🇬🇭", POL: "🇵🇱", CRO: "🇭🇷", SKN: "🇰🇳", HUN: "🇭🇺", EST: "🇪🇪", NZL: "🇳🇿", COM: "🇰🇲", GAM: "🇬🇲", SRB: "🇷🇸", MNE: "🇲🇪", LVA: "🇱🇻", MAR: "🇲🇦", FIN: "🇫🇮", JAM: "🇯🇲", TRI: "🇹🇹", ALG: "🇩🇿",
 };
 export const NAT_NAME: Record<string, string> = {
   ...Object.fromEntries(COUNTRIES.map((c) => [c.id, c.name])),
   URU: "Uruguai", COL: "Colômbia", NGA: "Nigéria", SEN: "Senegal", CIV: "Costa do Marfim", PAR: "Paraguai", EQU: "Equador", ANG: "Angola",
+  NIR: "Irlanda do Norte", IRL: "Irlanda", WAL: "País de Gales", AUS: "Austrália", SWE: "Suécia", GHA: "Gana", POL: "Polônia", CRO: "Croácia", SKN: "São Cristóvão e Névis", HUN: "Hungria", EST: "Estônia", NZL: "Nova Zelândia", COM: "Comores", GAM: "Gâmbia", SRB: "Sérvia", MNE: "Montenegro", LVA: "Letônia", MAR: "Marrocos", FIN: "Finlândia", JAM: "Jamaica", TRI: "Trinidad e Tobago", ALG: "Argélia",
 };
 
 export interface ContDef { id: string; name: string; conf: string; quotas: Record<string, number>; offset: number; color: string; prize: number }
