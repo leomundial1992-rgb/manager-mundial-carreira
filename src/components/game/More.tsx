@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { Facilities, GameState } from "@/game/types";
 import { mutate, saveNow } from "@/game/store";
-import { DEF_FOCUS, TRAINING_TYPES, userWages, add, msg } from "@/game/engine";
+import { DEF_FOCUS, TRAINING_TYPES, userWages, add, msg, requestBoard, boardCooldown, type BoardRequestKind, type BoardArg } from "@/game/engine";
 import { negotiateSponsor } from "@/game/sponsors";
 import { donate } from "@/game/market";
 import { SPONSOR_SLOTS } from "@/game/data";
@@ -224,6 +224,7 @@ function Board({ st }: { st: GameState }) {
         <p className="text-sm">{mood}</p>
         <p className="text-xs text-muted-foreground">Reage a resultados, contratações de peso, vendas de ídolos e títulos. Influencia bilheteria e patrocínios.</p>
       </div>
+      <BoardMeeting st={st} />
       <div className="mm-card space-y-1 text-sm">
         <div className="font-display text-xl font-bold">{st.coach.name}</div>
         <div className="flex justify-between"><span>Reputação</span><b>{Math.round(st.coach.rep)}/99</b></div>
@@ -232,6 +233,58 @@ function Board({ st }: { st: GameState }) {
         <div className="flex justify-between"><span>Títulos</span><b>{st.coach.titles.length}</b></div>
         <div className="flex justify-between"><span>Dificuldade</span><b className="capitalize">{st.difficulty}</b></div>
       </div>
+    </div>
+  );
+}
+
+function BoardMeeting({ st }: { st: GameState }) {
+  const me = st.clubs[st.userClub!];
+  const [kind, setKind] = useState<BoardRequestKind>("folha");
+  const [pct, setPct] = useState(10);
+  const [arg, setArg] = useState<BoardArg>("resultados");
+  const [confirm, setConfirm] = useState(false);
+  const wait = boardCooldown(st);
+  const base = kind === "folha" ? me.wageBudget : Math.max(me.transferBudget, 2_000_000);
+  const opt = (on: boolean) => cn("flex-1 min-h-11 rounded-lg border px-2 text-sm font-semibold", on ? "border-primary bg-primary/15 text-primary" : "text-muted-foreground");
+  const send = () => {
+    let r = { ok: false, text: "" };
+    mutate((s) => { r = requestBoard(s, kind, pct, arg); });
+    saveNow();
+    notify(r.text);
+    setConfirm(false);
+  };
+  return (
+    <div className="mm-card mb-3 space-y-3">
+      <div className="font-display text-xl font-bold">Reunião com a diretoria</div>
+      <div className="text-sm text-muted-foreground">Teto da folha: <b className="text-foreground">{money(me.wageBudget)}/mês</b> · Transferências: <b className="text-foreground">{money(me.transferBudget)}</b></div>
+      <div>
+        <div className="mb-1 text-sm">O que pedir</div>
+        <div className="flex gap-2">
+          <button className={opt(kind === "folha")} onClick={() => setKind("folha")}>Aumento da folha</button>
+          <button className={opt(kind === "transferencias")} onClick={() => setKind("transferencias")}>Verba p/ contratar</button>
+        </div>
+      </div>
+      <div>
+        <div className="mb-1 text-sm">Tamanho do pedido</div>
+        <div className="flex gap-2">{[10, 20, 35].map((v) => <button key={v} className={opt(pct === v)} onClick={() => setPct(v)}>+{v}%</button>)}</div>
+        <div className="mt-1 text-xs text-muted-foreground">≈ +{money(Math.round(base * pct / 100))}{kind === "folha" ? " por mês" : ""}</div>
+      </div>
+      <div>
+        <div className="mb-1 text-sm">Argumento</div>
+        <div className="flex gap-2">
+          <button className={opt(arg === "resultados")} onClick={() => setArg("resultados")}>Bons resultados</button>
+          <button className={opt(arg === "objetivo")} onClick={() => setArg("objetivo")}>Cumprir objetivo</button>
+          <button className={opt(arg === "venda")} onClick={() => setArg("venda")}>Vender depois</button>
+        </div>
+      </div>
+      {wait > 0 ? <p className="text-sm text-muted-foreground">Próximo pedido possível em {wait} rodada(s).</p>
+        : confirm ? (
+          <div className="flex gap-2">
+            <button className="mm-btn flex-1" onClick={send}>Confirmar pedido</button>
+            <button className="mm-btn-ghost flex-1" onClick={() => setConfirm(false)}>Cancelar</button>
+          </div>
+        ) : <button className="mm-btn w-full" onClick={() => setConfirm(true)}>Pedir à diretoria</button>}
+      <p className="text-xs text-muted-foreground">A resposta depende da confiança, do caixa e da posição na tabela. Recusas custam um pouco de confiança. Um pedido a cada {8} rodadas.</p>
     </div>
   );
 }
